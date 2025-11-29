@@ -39,6 +39,6 @@ public class QPSKModulator(int SampleRate,int SymbolRate)
     }
     public char[] deModulate(Complex[] iqSamples)
     {
-       
+       return Array.Empty<char>();
     }
 }

@@ -10,13 +10,11 @@ public class MainTest
     {
 
 
-        int sampleRate = 1_000_000, SymbolRate = 512, DriftPerSec = 32, fc = 100_000_000;
-
-
-        var LO = new LocalOscillator(fc,sampleRate,DriftPerSec);
-        var LOBuffer = new Complex[16_000_000] ;
-        LO.GenerateBlock(LOBuffer,0,16_000_000);
-        LOBuffer.SaveAsCs16($"Oscilator_RATE-{sampleRate}_DRIFT-{DriftPerSec}_CARRIER-{fc}.cs16");
+        int sampleRate = 1_000_000, SymbolRate = 512, ppm = 2, fc = 100_000_000;
+        var LO = new LocalOscillator(fc,sampleRate, ppm);
+        var LOBuffer = new Complex[5_000_000] ;
+        LO.GenerateBlock(LOBuffer,0, 5_000_000);
+        LOBuffer.SaveAsCs16($"Oscilator_RATE-{sampleRate}_DRIFT-{ppm}_CARRIER-{fc}.cs16");
 
         int rrcSpan = 4;
         double rrcBeta = 0.7;
@@ -29,6 +27,9 @@ public class MainTest
         var modulatedSignal = modulator.Modulate(DATA);
         modulatedSignal.SaveAsCs16($"QPSKModulated_SAMPLERATE-{sampleRate}_SYMBOLRATE-{SymbolRate}.cs16");
 
-        
+        Complex[] signalOverAir = modulatedSignal.Multiply(LOBuffer); //what goes over the air carrier wave + modulation
+        signalOverAir.SaveAsCs16($"QPSKOverAir_SAMPLERATE-{sampleRate}_SYMBOLRATE-{SymbolRate}_CARRIER-{fc}_DRIFT-{ppm}.cs16");
+
+
     }
 }

@@ -1,6 +1,7 @@
 using MathNet.Numerics.IntegralTransforms;
 using System;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 
 namespace Modulation_Simulation.Models;
@@ -67,6 +68,22 @@ public static class HelperFunctions
             }
         }
 
+        return results;
+    }
+    public static void Multiply(this Complex[] a, double[] b)
+    {
+        for (int i = 0; i < Math.Min(a.Length,b.Length); i++)
+        {
+            a[i] *= b[i];
+        }
+    }
+    public static Complex[] Multiply(this Complex[] a, Complex[] b)
+    {
+        Complex[] results = new Complex[Math.Max(a.Length, b.Length)];
+        if (a.Length <= b.Length)
+            results = a.Select((x, i) =>(i >= b.Length) ? x:x * b[i]).ToArray();
+        else
+            results = b.Select((x, i) => (i >= a.Length) ? x : x * a[i]).ToArray();
         return results;
     }
     public static Complex[] FftConvolve(this Complex[] x, double[] h)
