@@ -14,9 +14,9 @@ namespace Modulation_Simulation.Models;
 /// CC= -135
 /// DD= -45
 /// </summary>
-public class QPSKModulator(int SampleRate,int SymbolRate)
+public class QPSKModulator(int SampleRate,int SymbolRate,double RrcAlpha = 0.7)
 {
-    private double[] rrcCoeff = RRCFilter.generateCoefficents(4,0.7,SampleRate,SymbolRate);
+    private double[] rrcCoeff = RRCFilter.generateCoefficents(4, RrcAlpha, SampleRate,SymbolRate);
     public Complex[] Modulate(string data)
     {
         List<Complex> result = new List<Complex>();
@@ -37,8 +37,19 @@ public class QPSKModulator(int SampleRate,int SymbolRate)
         //pulse Shaping
         return result.ToArray().FftConvolve(rrcCoeff);
     }
-    public char[] deModulate(Complex[] iqSamples)
+
+
+    private FLLBandEdgeFilter fllBandEdgeFilter = new FLLBandEdgeFilter(SymbolRate, (float)RrcAlpha, 33,(float)(2.0 * Math.PI / SymbolRate / 100.0));
+    private SymbolSync symbolSync = new SymbolSync(RRCFilter.generateCoefficents(4, RrcAlpha, SampleRate, SymbolRate), SymbolRate);
+    private CostasLoopQpsk costasLoopQpsk = new CostasLoopQpsk();
+    public void deModulate(Complex[] iqSamples)
     {
-       return Array.Empty<char>();
+       iqSamples = fllBandEdgeFilter.Process(iqSamples);
+        for(int i =0;i<iqSamples.Length;i++)
+       symbolSync.ProcessSample(i,(y,yp,e_timing) =>
+       {
+           var results = costasLoopQpsk.Process(y);
+           Console.WriteLine($"({results})");
+       });
     }
 }

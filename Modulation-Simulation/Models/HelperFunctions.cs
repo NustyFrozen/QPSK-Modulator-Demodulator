@@ -70,6 +70,25 @@ public static class HelperFunctions
 
         return results;
     }
+    public static double[] Derivative(double[] h, double Ts = 1.0)
+    {
+        int n = h.Length;
+        var hd = new double[n];
+
+        if (n < 2) return hd;
+
+        // interior points – central difference
+        for (int i = 1; i < n - 1; i++)
+        {
+            hd[i] = (h[i + 1] - h[i - 1]) / (2.0 * Ts);
+        }
+
+        // simple forward/backward at the edges
+        hd[0] = (h[1] - h[0]) / Ts;
+        hd[n - 1] = (h[n - 1] - h[n - 2]) / Ts;
+
+        return hd;
+    }
     public static void Multiply(this Complex[] a, double[] b)
     {
         for (int i = 0; i < Math.Min(a.Length,b.Length); i++)
