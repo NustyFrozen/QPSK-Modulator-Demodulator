@@ -13,7 +13,7 @@ public class MainTest
         testBaseBandOnly();
         return;
         int sampleRate = 1_000_000, SymbolRate = 512, ppm = 2, fc = 10_000;
-        var LO = new LocalOscillator(fc,sampleRate, ppm);
+        var LO = new NCO(fc,sampleRate, ppm);
         var LOBuffer = new Complex[5_000_000] ;
         LO.GenerateBlock(LOBuffer,0, 5_000_000);
         LOBuffer.SaveAsCs16($"Oscilator_RATE-{sampleRate}_DRIFT-{ppm}_CARRIER-{fc}.cs16");

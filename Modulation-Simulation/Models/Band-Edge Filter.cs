@@ -33,8 +33,8 @@ namespace Modulation_Simulation.Models;
         // Filters
         Complex[] tapsLower;
         Complex[] tapsUpper;
-        FIRFilter filterLower;
-        FIRFilter filterUpper;
+        ComplexFIRFilter filterLower;
+        ComplexFIRFilter filterUpper;
 
         public FLLBandEdgeFilter(float sps, float rolloff, int filterSize, float bandwidth)
         {
@@ -53,8 +53,9 @@ namespace Modulation_Simulation.Models;
             freq  = 0.0f;
 
             alpha   = 0.0f;                                   // FLL: no direct phase update
-            beta    = TWO_PI * 4.0f * bandwidth / sps;        // matches ctor in C++ code
-            maxFreq = TWO_PI * (2.0f / sps);
+        beta = 4.0f * bandwidth / sps;
+
+        maxFreq = TWO_PI * (2.0f / sps);
             minFreq = -maxFreq;
 
             DesignFilter();
@@ -74,11 +75,11 @@ namespace Modulation_Simulation.Models;
                 Complex nco = Expj(phase);
                 output_asspan[i] = input[i] * nco;
 
-                // Band-edge filters
-                Complex outUpper = filterLower.Filter(output_asspan[i]); // note: lower filter -> upper edge
-                Complex outLower = filterUpper.Filter(output_asspan[i]); // and vice versa (matches C++)
-                
-                float powUpper = (float)(outUpper.Real * outUpper.Real + outUpper.Imaginary * outUpper.Imaginary);
+            Complex outUpper = filterUpper.Filter(output_asspan[i]);
+            Complex outLower = filterLower.Filter(output_asspan[i]);
+
+
+            float powUpper = (float)(outUpper.Real * outUpper.Real + outUpper.Imaginary * outUpper.Imaginary);
                 float powLower = (float)(outLower.Real * outLower.Real + outLower.Imaginary * outLower.Imaginary);
 
                 float error = powLower - powUpper;
@@ -95,54 +96,82 @@ namespace Modulation_Simulation.Models;
 
             return output;
         }
+    public Complex Process(Complex input)
+    {
+        if (input == null) throw new ArgumentNullException(nameof(input));
+           
+            // NCO
+            Complex nco = Expj(phase);
+        Complex output = input * nco;
+        Complex outUpper = filterUpper.Filter(output);
+            Complex outLower = filterLower.Filter(output);
 
-       
 
-        // ----------------- internals -----------------
+            float powUpper = (float)(outUpper.Real * outUpper.Real + outUpper.Imaginary * outUpper.Imaginary);
+            float powLower = (float)(outLower.Real * outLower.Real + outLower.Imaginary * outLower.Imaginary);
 
-        void DesignFilter()
+            float error = powLower - powUpper;
+
+            //advanced the loop
+            freq += beta * error;
+            phase += freq + this.alpha * error;
+
+            //+- 360 degrees
+            WrapPhase();
+
+            LimitFrequency();
+        
+
+        return output;
+    }
+
+
+    // ----------------- internals -----------------
+
+    void DesignFilter()
+    {
+        int numTaps = filterSize;
+        int mid = (numTaps - 1) / 2;
+
+        var bbTaps = new float[numTaps];
+        float sum = 0.0f;
+
+        // ---- BASEBAND BAND-EDGE TAPS (GNU RADIO EXACT FORM) ----
+        for (int i = 0; i < numTaps; i++)
         {
-            int M = (int)MathF.Round(filterSize / sps);
-            float power = 0.0f;
+            float k = (i - mid) / (2.0f * sps);
+            float pos = rolloff * k;
 
-            var bbTaps = new float[filterSize];
-            float halfSpsInv = 2.0f / sps;
-
-            // Baseband taps: sum of two sincs
-            for (int i = 0; i < filterSize; i++)
-            {
-                float k = -M + i * halfSpsInv;
-                float pos = rolloff * k;
-                float tap = Sinc(pos - 0.5f) + Sinc(pos + 0.5f);
-                power += tap * tap;
-                bbTaps[i] = tap;
-            }
-
-            tapsLower = new Complex[filterSize];
-            tapsUpper = new Complex[filterSize];
-
-            int N = (bbTaps.Length - 1) / 2;
-            float invPower = 1.0f / power;
-            float invTwiceSps = 0.5f / sps;
-
-            for (int i = 0; i < filterSize; i++)
-            {
-                float tap = bbTaps[i] * invPower;
-                float k = (i - N) * invTwiceSps;
-                int index = filterSize - i - 1;
-
-                float angle = -TWO_PI * (1.0f + rolloff) * k;
-                Complex w = Expj(angle);
-
-                tapsLower[index] = tap * w;
-                tapsUpper[index] = Complex.Conjugate(tapsLower[index]);
-            }
-
-            filterUpper = new FIRFilter(tapsUpper);
-            filterLower = new FIRFilter(tapsLower);
+            float tap = Sinc(pos - 0.5f) + Sinc(pos + 0.5f);
+            sum += tap;
+            bbTaps[i] = tap;
         }
 
-        void WrapPhase()
+        // ---- NORMALIZE BY SUM (NOT POWER!) ----
+        for (int i = 0; i < numTaps; i++)
+            bbTaps[i] /= sum;
+
+        tapsLower = new Complex[numTaps];
+        tapsUpper = new Complex[numTaps];
+
+        // ---- SHIFT TO ±(1+rolloff)/2 SYMBOL RATE ----
+        for (int i = 0; i < numTaps; i++)
+        {
+            float k = (i - mid) / (2.0f * sps);
+            float angle = -TWO_PI * (1.0f + rolloff) * k;
+
+            Complex w = Expj(angle);
+
+            tapsLower[i] = bbTaps[i] * w;
+            tapsUpper[i] = Complex.Conjugate(tapsLower[i]);
+        }
+
+        filterLower = new ComplexFIRFilter(tapsLower);
+        filterUpper = new ComplexFIRFilter(tapsUpper);
+    }
+
+
+    void WrapPhase()
         {
             if (phase > TWO_PI || phase < -TWO_PI)
                 phase = (float)Math.IEEERemainder(phase, TWO_PI);

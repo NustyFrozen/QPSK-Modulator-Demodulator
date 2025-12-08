@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36221.1 d17.14
+VisualStudioVersion = 17.14.36221.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modulation-Simulation", "Modulation-Simulation\Modulation-Simulation.csproj", "{8D037F1F-3209-43AF-31C1-77A7AE2333C1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestBench", "TestBench\TestBench.csproj", "{D178262F-4CD6-44D9-AB6C-7A13D280A574}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{8D037F1F-3209-43AF-31C1-77A7AE2333C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D037F1F-3209-43AF-31C1-77A7AE2333C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8D037F1F-3209-43AF-31C1-77A7AE2333C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D178262F-4CD6-44D9-AB6C-7A13D280A574}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D178262F-4CD6-44D9-AB6C-7A13D280A574}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D178262F-4CD6-44D9-AB6C-7A13D280A574}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D178262F-4CD6-44D9-AB6C-7A13D280A574}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

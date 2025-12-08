@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MathNet.Numerics;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -6,37 +7,70 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Modulation_Simulation.Models;
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="sampleRate">sample rate</param>
+/// <param name="loopBandwith">cutoff LPF of the error</param>
+/// <param name="FIRTaps">how strong you want the smoothing Small smoothing 11-31, strong 51-201  must be odd number</param>
     public class CostasLoopQpsk
 {
-    private double phase;      // estimated carrier phase
-    private double freq;       // frequency correction
-    private readonly double alpha; // loop gains
-    private readonly double beta;
+    float sampleRate, cutoff;
+    int FIRTaps;
+    RealFIRFilter filter;
 
-    public CostasLoopQpsk(double loopBandwidth = 0.001)
+
+    //nco
+    double theta;        // NCO phase
+    double loopOut;      // filtered error (real)
+    double loopGain;
+    public CostasLoopQpsk(float sampleRate, float cutoff, int FIRTaps,float loopGain = 1.0f)
     {
-        // Very typical PLL coefficient choice
-        beta = 0.25 * loopBandwidth * loopBandwidth;
-        alpha = 2 * beta;
+        this.sampleRate = sampleRate;
+        this.cutoff = cutoff;
+        this.FIRTaps = FIRTaps;
+        this.loopGain = loopGain;
+        filter = new RealFIRFilter(generateLPFCoeff());
     }
-
-    public Complex Process(Complex y)
+    //thresholder
+    Complex getSign(Complex sample) => new Complex(sample.Real > 0 ? 1.0f : -1.0f, sample.Imaginary > 0 ? 1.0f : -1.0f);
+    public Complex process(Complex sample)
     {
-        // Rotate by negative estimated phase
-        Complex z = y * Complex.Exp(new Complex(0, -phase));
+        var nco = Complex.FromPolarCoordinates(1.0, -theta);
+        var mixed = sample * nco;
 
-        // Costas QPSK phase error
-        double e = Math.Sign(z.Real) * z.Imaginary
-                 - Math.Sign(z.Imaginary) * z.Real;
+        var est = getSign(mixed);
+        double phaseError = est.Real * mixed.Imaginary - est.Imaginary * mixed.Real;
 
-        // PLL update
-        freq += beta * e;     // integrator
-        phase += freq + alpha * e;  // proportional + integrator
+        loopOut = filter.Filter(phaseError); // real filter
+        theta += loopGain * loopOut;                // K = loop gain
+        return mixed;
+    }
+    double[] generateLPFCoeff()
+    {
+        double[] Hideal = new double[FIRTaps]; //ideal sinc function
+        double Wc = cutoff / sampleRate;
+        int M = (FIRTaps - 1) / 2;
+        for (int i = 0; i < FIRTaps; i++)
+        {
+            if(M == i)
+            {
+                Hideal[i] = 2 * Wc;
+            } else
+            {
+                Hideal[i] = Math.Sin(2 * Math.PI * Wc*(i - M)) / (Math.PI * (i - M));
+            }
+        }
+        var hamming = Window.Hamming(FIRTaps);
+        var windowed = Enumerable.Range(0, FIRTaps)
+                                 .Select(x => Hideal[x] * hamming[x])
+                                 .ToArray();
 
-        // keep phase in [-pi, pi]
-        if (phase > Math.PI) phase -= 2 * Math.PI;
-        else if (phase < -Math.PI) phase += 2 * Math.PI;
+        var sum = windowed.Sum(); // DC gain normalization
 
-        return z; // carrier-corrected symbol
+        return windowed
+            .Select(v =>(v / sum))
+            .ToArray();
     }
 }
