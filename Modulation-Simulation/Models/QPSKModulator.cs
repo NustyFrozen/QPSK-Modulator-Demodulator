@@ -17,7 +17,7 @@ namespace Modulation_Simulation.Models;
 /// </summary>
 public class QPSKModulator(int SampleRate,int SymbolRate,double RrcAlpha = 0.7)
 {
-    private double[] rrcCoeff = RRCFilter.generateCoefficents(4, RrcAlpha, SampleRate,SymbolRate);
+    private double[] rrcCoeff = RRCFilter.generateCoefficents(6, RrcAlpha, SampleRate,SymbolRate);
     public Complex[] Modulate(string data,bool pulseShaping = true)
     {
         List<Complex> result = new List<Complex>();

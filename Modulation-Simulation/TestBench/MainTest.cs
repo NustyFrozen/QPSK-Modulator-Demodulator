@@ -9,9 +9,6 @@ public class MainTest
 {
     public static void RunTests()
     {
-
-        testBaseBandOnly();
-        return;
         int sampleRate = 1_000_000, SymbolRate = 512, ppm = 2, fc = 10_000;
         var LO = new NCO(fc,sampleRate, ppm);
         var LOBuffer = new Complex[5_000_000] ;

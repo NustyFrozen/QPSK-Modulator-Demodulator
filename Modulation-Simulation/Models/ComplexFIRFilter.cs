@@ -4,7 +4,7 @@ namespace Modulation_Simulation.Models;
 
 public class ComplexFIRFilter
     {
-        readonly Complex[] taps;
+       public readonly Complex[] taps;
         readonly Complex[] delay;
         int index;
 

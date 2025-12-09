@@ -34,7 +34,7 @@ namespace Modulation_Simulation.Models;
         filter = new RealFIRFilter(generateLPFCoeff());
     }
     //thresholder
-    Complex getSign(Complex sample) => new Complex(sample.Real > 0 ? 1.0f : -1.0f, sample.Imaginary > 0 ? 1.0f : -1.0f);
+    public static Complex getSign(Complex sample) => new Complex(sample.Real > 0 ? 1.0f : -1.0f, sample.Imaginary > 0 ? 1.0f : -1.0f);
     public Complex process(Complex sample)
     {
         var nco = Complex.FromPolarCoordinates(1.0, -theta);
