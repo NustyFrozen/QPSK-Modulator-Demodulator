@@ -26,7 +26,7 @@ import threading
 
 
 
-class test(gr.top_block, Qt.QWidget):
+class testFullDemodulation(gr.top_block, Qt.QWidget):
 
     def __init__(self):
         gr.top_block.__init__(self, "Not titled yet", catch_exceptions=True)
@@ -49,7 +49,7 @@ class test(gr.top_block, Qt.QWidget):
         self.top_grid_layout = Qt.QGridLayout()
         self.top_layout.addLayout(self.top_grid_layout)
 
-        self.settings = Qt.QSettings("gnuradio/flowgraphs", "test")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "testFullDemodulation")
 
         try:
             geometry = self.settings.value("geometry")
@@ -62,13 +62,15 @@ class test(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 1e6
+        self.samp_rate = samp_rate = 10e6
+        self.sym_rate = sym_rate = samp_rate/8
 
         ##################################################
         # Blocks
         ##################################################
 
-        self.zeromq_sub_source_0_0_0 = zeromq.sub_source(gr.sizeof_gr_complex, 1, 'tcp://127.0.0.1:5555', 100, False, (-1), 'baseband_PostPLL', False)
+        self.zeromq_sub_source_0_0_0_0 = zeromq.sub_source(gr.sizeof_gr_complex, 1, 'tcp://127.0.0.1:5555', 100, False, (-1), 'baseband_PostSymbolSyncPostCostas', False)
+        self.zeromq_sub_source_0_0_0 = zeromq.sub_source(gr.sizeof_gr_complex, 1, 'tcp://127.0.0.1:5555', 100, False, (-1), 'baseband_PostSymbolSync', False)
         self.zeromq_sub_source_0 = zeromq.sub_source(gr.sizeof_gr_complex, 1, 'tcp://127.0.0.1:5555', 10000, False, (-1), 'baseband', False)
         self.qtgui_freq_sink_x_0 = qtgui.freq_sink_c(
             4096, #size
@@ -76,7 +78,7 @@ class test(gr.top_block, Qt.QWidget):
             0, #fc
             samp_rate, #bw
             "", #name
-            2,
+            1,
             None # parent
         )
         self.qtgui_freq_sink_x_0.set_update_time(0.01)
@@ -101,7 +103,7 @@ class test(gr.top_block, Qt.QWidget):
         alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
             1.0, 1.0, 1.0, 1.0, 1.0]
 
-        for i in range(2):
+        for i in range(1):
             if len(labels[i]) == 0:
                 self.qtgui_freq_sink_x_0.set_line_label(i, "Data {0}".format(i))
             else:
@@ -112,22 +114,72 @@ class test(gr.top_block, Qt.QWidget):
 
         self._qtgui_freq_sink_x_0_win = sip.wrapinstance(self.qtgui_freq_sink_x_0.qwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_freq_sink_x_0_win)
-        self.qtgui_const_sink_x_0 = qtgui.const_sink_c(
+        self.qtgui_eye_sink_x_0 = qtgui.eye_sink_c(
             4096, #size
+            samp_rate, #samp_rate
+            3, #number of inputs
+            None
+        )
+        self.qtgui_eye_sink_x_0.set_update_time(0.10)
+        self.qtgui_eye_sink_x_0.set_samp_per_symbol((int(samp_rate/sym_rate)))
+        self.qtgui_eye_sink_x_0.set_y_axis(-1, 1)
+
+        self.qtgui_eye_sink_x_0.set_y_label('Amplitude', "")
+
+        self.qtgui_eye_sink_x_0.enable_tags(True)
+        self.qtgui_eye_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, qtgui.TRIG_SLOPE_POS, 0.0, 0, 0, "")
+        self.qtgui_eye_sink_x_0.enable_autoscale(False)
+        self.qtgui_eye_sink_x_0.enable_grid(True)
+        self.qtgui_eye_sink_x_0.enable_axis_labels(True)
+        self.qtgui_eye_sink_x_0.enable_control_panel(False)
+
+
+        labels = ['RAW I', 'RAW Q', 'SYNC I', 'SYNC Q', 'COSTAS I',
+            'COSTAS Q', 'Signal 7', 'Signal 8', 'Signal 9', 'Signal 10']
+        widths = [1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1]
+        colors = ['blue', 'blue', 'blue', 'blue', 'blue',
+            'blue', 'blue', 'blue', 'blue', 'blue']
+        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0]
+        styles = [1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1]
+        markers = [-1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1]
+
+
+        for i in range(6):
+            if len(labels[i]) == 0:
+                if (i % 2 == 0):
+                    self.qtgui_eye_sink_x_0.set_line_label(i, "Eye [Re{{Data {0}}}]".format(round(i/2)))
+                else:
+                    self.qtgui_eye_sink_x_0.set_line_label(i, "Eye [Im{{Data {0}}}]".format(round((i-1)/2)))
+            else:
+                self.qtgui_eye_sink_x_0.set_line_label(i, labels[i])
+            self.qtgui_eye_sink_x_0.set_line_width(i, widths[i])
+            self.qtgui_eye_sink_x_0.set_line_color(i, colors[i])
+            self.qtgui_eye_sink_x_0.set_line_style(i, styles[i])
+            self.qtgui_eye_sink_x_0.set_line_marker(i, markers[i])
+            self.qtgui_eye_sink_x_0.set_line_alpha(i, alphas[i])
+
+        self._qtgui_eye_sink_x_0_win = sip.wrapinstance(self.qtgui_eye_sink_x_0.qwidget(), Qt.QWidget)
+        self.top_layout.addWidget(self._qtgui_eye_sink_x_0_win)
+        self.qtgui_const_sink_x_0_0 = qtgui.const_sink_c(
+            200, #size
             "", #name
-            2, #number of inputs
+            1, #number of inputs
             None # parent
         )
-        self.qtgui_const_sink_x_0.set_update_time(0.10)
-        self.qtgui_const_sink_x_0.set_y_axis((-2), 2)
-        self.qtgui_const_sink_x_0.set_x_axis((-2), 2)
-        self.qtgui_const_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, qtgui.TRIG_SLOPE_POS, 0.0, 0, "")
-        self.qtgui_const_sink_x_0.enable_autoscale(False)
-        self.qtgui_const_sink_x_0.enable_grid(True)
-        self.qtgui_const_sink_x_0.enable_axis_labels(True)
+        self.qtgui_const_sink_x_0_0.set_update_time(0.10)
+        self.qtgui_const_sink_x_0_0.set_y_axis((-2), 2)
+        self.qtgui_const_sink_x_0_0.set_x_axis((-2), 2)
+        self.qtgui_const_sink_x_0_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, qtgui.TRIG_SLOPE_POS, 0.0, 0, "")
+        self.qtgui_const_sink_x_0_0.enable_autoscale(False)
+        self.qtgui_const_sink_x_0_0.enable_grid(True)
+        self.qtgui_const_sink_x_0_0.enable_axis_labels(True)
 
 
-        labels = ['', '', '', '', '',
+        labels = ['costas loop', '', '', '', '',
             '', '', '', '', '']
         widths = [1, 1, 1, 1, 1,
             1, 1, 1, 1, 1]
@@ -140,7 +192,48 @@ class test(gr.top_block, Qt.QWidget):
         alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
             1.0, 1.0, 1.0, 1.0, 1.0]
 
-        for i in range(2):
+        for i in range(1):
+            if len(labels[i]) == 0:
+                self.qtgui_const_sink_x_0_0.set_line_label(i, "Data {0}".format(i))
+            else:
+                self.qtgui_const_sink_x_0_0.set_line_label(i, labels[i])
+            self.qtgui_const_sink_x_0_0.set_line_width(i, widths[i])
+            self.qtgui_const_sink_x_0_0.set_line_color(i, colors[i])
+            self.qtgui_const_sink_x_0_0.set_line_style(i, styles[i])
+            self.qtgui_const_sink_x_0_0.set_line_marker(i, markers[i])
+            self.qtgui_const_sink_x_0_0.set_line_alpha(i, alphas[i])
+
+        self._qtgui_const_sink_x_0_0_win = sip.wrapinstance(self.qtgui_const_sink_x_0_0.qwidget(), Qt.QWidget)
+        self.top_layout.addWidget(self._qtgui_const_sink_x_0_0_win)
+        self.qtgui_const_sink_x_0 = qtgui.const_sink_c(
+            200, #size
+            "", #name
+            3, #number of inputs
+            None # parent
+        )
+        self.qtgui_const_sink_x_0.set_update_time(0.10)
+        self.qtgui_const_sink_x_0.set_y_axis((-2), 2)
+        self.qtgui_const_sink_x_0.set_x_axis((-2), 2)
+        self.qtgui_const_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, qtgui.TRIG_SLOPE_POS, 0.0, 0, "")
+        self.qtgui_const_sink_x_0.enable_autoscale(False)
+        self.qtgui_const_sink_x_0.enable_grid(True)
+        self.qtgui_const_sink_x_0.enable_axis_labels(True)
+
+
+        labels = ['raw signal', 'symbol sync', 'costas loop', '', '',
+            '', '', '', '', '']
+        widths = [1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1]
+        colors = ["blue", "red", "green", "black", "cyan",
+            "magenta", "yellow", "dark red", "dark green", "dark blue"]
+        styles = [0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0]
+        markers = [0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0]
+        alphas = [1, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0]
+
+        for i in range(3):
             if len(labels[i]) == 0:
                 self.qtgui_const_sink_x_0.set_line_label(i, "Data {0}".format(i))
             else:
@@ -153,21 +246,25 @@ class test(gr.top_block, Qt.QWidget):
 
         self._qtgui_const_sink_x_0_win = sip.wrapinstance(self.qtgui_const_sink_x_0.qwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_const_sink_x_0_win)
-        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_cc(1.42)
+        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_cc(1)
 
 
         ##################################################
         # Connections
         ##################################################
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.qtgui_const_sink_x_0, 1))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.qtgui_eye_sink_x_0, 1))
         self.connect((self.zeromq_sub_source_0, 0), (self.qtgui_const_sink_x_0, 0))
+        self.connect((self.zeromq_sub_source_0, 0), (self.qtgui_eye_sink_x_0, 0))
         self.connect((self.zeromq_sub_source_0, 0), (self.qtgui_freq_sink_x_0, 0))
         self.connect((self.zeromq_sub_source_0_0_0, 0), (self.blocks_multiply_const_vxx_0, 0))
-        self.connect((self.zeromq_sub_source_0_0_0, 0), (self.qtgui_freq_sink_x_0, 1))
+        self.connect((self.zeromq_sub_source_0_0_0_0, 0), (self.qtgui_const_sink_x_0, 2))
+        self.connect((self.zeromq_sub_source_0_0_0_0, 0), (self.qtgui_const_sink_x_0_0, 0))
+        self.connect((self.zeromq_sub_source_0_0_0_0, 0), (self.qtgui_eye_sink_x_0, 2))
 
 
     def closeEvent(self, event):
-        self.settings = Qt.QSettings("gnuradio/flowgraphs", "test")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "testFullDemodulation")
         self.settings.setValue("geometry", self.saveGeometry())
         self.stop()
         self.wait()
@@ -179,12 +276,22 @@ class test(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
+        self.set_sym_rate(self.samp_rate/8)
+        self.qtgui_eye_sink_x_0.set_samp_rate(self.samp_rate)
+        self.qtgui_eye_sink_x_0.set_samp_per_symbol((int(self.samp_rate/self.sym_rate)))
         self.qtgui_freq_sink_x_0.set_frequency_range(0, self.samp_rate)
 
+    def get_sym_rate(self):
+        return self.sym_rate
+
+    def set_sym_rate(self, sym_rate):
+        self.sym_rate = sym_rate
+        self.qtgui_eye_sink_x_0.set_samp_per_symbol((int(self.samp_rate/self.sym_rate)))
 
 
 
-def main(top_block_cls=test, options=None):
+
+def main(top_block_cls=testFullDemodulation, options=None):
 
     qapp = Qt.QApplication(sys.argv)
 

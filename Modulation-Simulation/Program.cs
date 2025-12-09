@@ -1,5 +1,4 @@
 ﻿using System;
-using Modulation_Simulation.TestBench;
 
 namespace Modulation_Simulation
 {
@@ -11,7 +10,7 @@ namespace Modulation_Simulation
         [STAThread]
         public static void Main(string[] args)
         {
-            MainTest.RunTests();
+            
         }
     }
 }

@@ -29,7 +29,8 @@ using (var pub = new PublisherSocket())
     // - sleep a little,
     // - or repeatedly send frames (which we do anyway).
     Thread.Sleep(500);
-    testSymbolSync.RunTest(pub);
+    testFullDemodulation.RunTest(pub);
+    //testCostas.RunTest(pub);
     int pos = 0;
     while (true)
     {

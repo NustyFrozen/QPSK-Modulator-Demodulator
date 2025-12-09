@@ -15,14 +15,14 @@ namespace TestBench
     {
         public static void RunTest(PublisherSocket pub)
         {
-            int sampleRate = 1_000_000, SymbolRate = 10000;
+            int sampleRate = 1_000_000, SymbolRate = 1000;
             const int samplesPerFrame = 4096;     // must match "items per message" in GRC
             const int floatsPerSample = 2;        // I and Q
             const int bytesPerFloat = 4;
             QPSKModulator modulator = new QPSKModulator(sampleRate, SymbolRate);
             NCO transmitter_unstable_NCO = new NCO(100e6, sampleRate,1,1);
             NCO receiver_unstable_NCO = new NCO(100e6, sampleRate,1);
-            CostasLoopQpsk costas = new CostasLoopQpsk(sampleRate,SymbolRate, 50);
+            CostasLoopQpsk costas = new CostasLoopQpsk(sampleRate,2*Math.PI*.1, 10);
             var rand = new Random();
             int pos = 0;
             bool generateNewSignal = false;
@@ -50,7 +50,7 @@ namespace TestBench
                     SignalPrePLL[2 * n] = (float)sample.Real; // I
                     SignalPrePLL[2 * n + 1] = (float)sample.Imaginary; // Q
 
-                    var sample_withPLL = costas.process(sample);
+                    var sample_withPLL = costas.Process(sample);
                     SignalPostPLL[2 * n] = (float)sample_withPLL.Real;
                     SignalPostPLL[2 * n + 1] = (float)sample_withPLL.Imaginary;
                 }

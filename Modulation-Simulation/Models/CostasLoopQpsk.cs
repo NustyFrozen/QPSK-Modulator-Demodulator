@@ -14,63 +14,64 @@ namespace Modulation_Simulation.Models;
 /// <param name="sampleRate">sample rate</param>
 /// <param name="loopBandwith">cutoff LPF of the error</param>
 /// <param name="FIRTaps">how strong you want the smoothing Small smoothing 11-31, strong 51-201  must be odd number</param>
-    public class CostasLoopQpsk
+public class CostasLoopQpsk
 {
-    float sampleRate, cutoff;
-    int FIRTaps;
-    RealFIRFilter filter;
+    readonly double sampleRate;
+    readonly double loopBandwidthHz;
+    readonly double damping;
 
+    double alpha, beta;   // loop gains from BW + damping
+    double theta;         // NCO phase [rad]
+    double freq;          // NCO frequency state [rad/sample]
 
-    //nco
-    double theta;        // NCO phase
-    double loopOut;      // filtered error (real)
-    double loopGain;
-    public CostasLoopQpsk(float sampleRate, float cutoff, int FIRTaps,float loopGain = 1.0f)
+    public CostasLoopQpsk(
+        double sampleRate,
+        double loopBandwidthHz,
+        double damping = 0.707)
     {
         this.sampleRate = sampleRate;
-        this.cutoff = cutoff;
-        this.FIRTaps = FIRTaps;
-        this.loopGain = loopGain;
-        filter = new RealFIRFilter(generateLPFCoeff());
+        this.loopBandwidthHz = loopBandwidthHz;
+        this.damping = damping;
+
+        // 1) normalize loop BW to rad/sample
+        double bw = 2.0 * Math.PI * loopBandwidthHz / sampleRate;
+
+        // 2) compute alpha, beta (Tom Rondeau / GNU Radio style)
+        double d = 1.0 + 2.0 * damping * bw + bw * bw;
+        alpha = (4.0 * damping * bw) / d;
+        beta = (4.0 * bw * bw) / d;
     }
-    //thresholder
-    public static Complex getSign(Complex sample) => new Complex(sample.Real > 0 ? 1.0f : -1.0f, sample.Imaginary > 0 ? 1.0f : -1.0f);
-    public Complex process(Complex sample)
+
+    // Hard limiter for QPSK
+    public static Complex GetSign(Complex sample) =>
+        new Complex(sample.Real > 0 ? 1.0 : -1.0,
+                    sample.Imaginary > 0 ? 1.0 : -1.0);
+
+    public Complex Process(Complex sample)
     {
+        // NCO
         var nco = Complex.FromPolarCoordinates(1.0, -theta);
         var mixed = sample * nco;
 
-        var est = getSign(mixed);
-        double phaseError = est.Real * mixed.Imaginary - est.Imaginary * mixed.Real;
+        // QPSK decision
+        var est = GetSign(mixed);
 
-        loopOut = filter.Filter(phaseError); // real filter
-        theta += loopGain * loopOut;                // K = loop gain
+        // QPSK Costas phase detector
+        double phaseError = est.Real * mixed.Imaginary
+                          - est.Imaginary * mixed.Real;
+
+        // 2nd order loop:
+        // freq[n+1]  = freq[n]  + beta  * e[n]
+        // theta[n+1] = theta[n] + freq[n+1] + alpha * e[n]
+        freq += beta * phaseError;
+        theta += freq + alpha * phaseError;
+
+        // keep theta bounded (optional but good practice)
+        if (theta > Math.PI)
+            theta -= 2.0 * Math.PI;
+        else if (theta < -Math.PI)
+            theta += 2.0 * Math.PI;
+
         return mixed;
-    }
-    double[] generateLPFCoeff()
-    {
-        double[] Hideal = new double[FIRTaps]; //ideal sinc function
-        double Wc = cutoff / sampleRate;
-        int M = (FIRTaps - 1) / 2;
-        for (int i = 0; i < FIRTaps; i++)
-        {
-            if(M == i)
-            {
-                Hideal[i] = 2 * Wc;
-            } else
-            {
-                Hideal[i] = Math.Sin(2 * Math.PI * Wc*(i - M)) / (Math.PI * (i - M));
-            }
-        }
-        var hamming = Window.Hamming(FIRTaps);
-        var windowed = Enumerable.Range(0, FIRTaps)
-                                 .Select(x => Hideal[x] * hamming[x])
-                                 .ToArray();
-
-        var sum = windowed.Sum(); // DC gain normalization
-
-        return windowed
-            .Select(v =>(v / sum))
-            .ToArray();
     }
 }

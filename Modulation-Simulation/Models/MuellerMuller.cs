@@ -48,8 +48,8 @@ public class MuellerMuller
             double mu = timeIndex - n;
 
             Complex currSample = Lerp(buffer, n, mu);
-            Complex currDecision = CostasLoopQpsk.getSign(currSample);
-
+            Complex currDecision = CostasLoopQpsk.GetSign(currSample);
+            
             if (hasPrev)
             {
                 Complex term1 = Complex.Conjugate(prevDecision) * currSample;
@@ -70,8 +70,8 @@ public class MuellerMuller
             prevSample = currSample;
             prevDecision = currDecision;
 
-            // ⬇️ This is what you want to pass on
-            outputSamples.Add(currSample);
+            if (currSample.MagnitudeSquared() > 0.5)
+                outputSamples.Add(currSample);
 
             maxIndex = buffer.Count - 2;
         }
