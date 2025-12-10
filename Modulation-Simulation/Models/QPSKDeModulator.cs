@@ -7,11 +7,12 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Modulation_Simulation.Models;
-    public class QPSKDeModulator(int SampleRate, int SymbolRate,float RrcAlpha = 0.9f, float threshold = 1f, int rrcSpan = 6,bool differentialEncoding = true)
+    public class QPSKDeModulator(int SampleRate, int SymbolRate,float RrcAlpha = 0.9f, float threshold = 1f, int rrcSpan = 6,double SymbolSyncBandwith= 0.000002, bool differentialEncoding = true)
     {
     ComplexFIRFilter rrc = new ComplexFIRFilter(RRCFilter.generateCoefficents(rrcSpan, RrcAlpha, SampleRate, SymbolRate).Select(x => new Complex(x, 0)).ToArray());
-    MuellerMuller symbolSync = new MuellerMuller(SampleRate / SymbolRate, 0.0097,                    // Kp (was 0.013)
-   .00001);
+    MuellerMuller symbolSync = new MuellerMuller(SampleRate / SymbolRate,
+       (1 / Math.Sqrt(2.0))* 4.0 * Math.PI * SymbolSyncBandwith,                    // Kp (was 0.013)
+  Math.Pow(2.0 * Math.PI * SymbolSyncBandwith,2));
     CostasLoopQpsk costas = new CostasLoopQpsk(
     SymbolRate,          // this is the real fs for costas.Process(...)
     SymbolRate / 100.0   // BW ≈ 0.01 * Rs (keep or tweak as you like)

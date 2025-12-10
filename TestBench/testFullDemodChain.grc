@@ -49,7 +49,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: samp_rate/8
+    value: samp_rate/30
   states:
     bus_sink: false
     bus_source: false
@@ -355,7 +355,7 @@ blocks:
     coordinate: [800, 240.0]
     rotation: 0
     state: enabled
-- name: qtgui_freq_sink_x_0
+- name: qtgui_freq_sink_x_1
   id: qtgui_freq_sink_x
   parameters:
     affinity: ''
@@ -371,7 +371,7 @@ blocks:
     alpha8: '1.0'
     alpha9: '1.0'
     autoscale: 'False'
-    average: '0.05'
+    average: '1.0'
     axislabels: 'True'
     bw: samp_rate
     color1: '"blue"'
@@ -387,7 +387,7 @@ blocks:
     comment: ''
     ctrlpanel: 'False'
     fc: '0'
-    fftsize: '4096'
+    fftsize: '1024'
     freqhalf: 'True'
     grid: 'False'
     gui_hint: ''
@@ -407,7 +407,7 @@ blocks:
     minoutbuf: '0'
     name: '""'
     nconnections: '1'
-    norm_window: 'False'
+    norm_window: 'True'
     showports: 'False'
     tr_chan: '0'
     tr_level: '0.0'
@@ -415,7 +415,7 @@ blocks:
     tr_tag: '""'
     type: complex
     units: dB
-    update_time: '0.01'
+    update_time: '0.10'
     width1: '1'
     width10: '1'
     width2: '1'
@@ -427,13 +427,13 @@ blocks:
     width8: '1'
     width9: '1'
     wintype: window.WIN_HAMMING
-    ymax: '314'
+    ymax: '10'
     ymin: '-140'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [728, 112.0]
+    coordinate: [784, 116.0]
     rotation: 0
     state: enabled
 - name: zeromq_sub_source_0
@@ -456,7 +456,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [112, 280.0]
+    coordinate: [112, 240.0]
     rotation: 0
     state: enabled
 - name: zeromq_sub_source_0_0_0
@@ -511,7 +511,7 @@ connections:
 - [blocks_multiply_const_vxx_0, '0', qtgui_eye_sink_x_0, '1']
 - [zeromq_sub_source_0, '0', qtgui_const_sink_x_0, '0']
 - [zeromq_sub_source_0, '0', qtgui_eye_sink_x_0, '0']
-- [zeromq_sub_source_0, '0', qtgui_freq_sink_x_0, '0']
+- [zeromq_sub_source_0, '0', qtgui_freq_sink_x_1, '0']
 - [zeromq_sub_source_0_0_0, '0', blocks_multiply_const_vxx_0, '0']
 - [zeromq_sub_source_0_0_0_0, '0', qtgui_const_sink_x_0, '2']
 - [zeromq_sub_source_0_0_0_0, '0', qtgui_const_sink_x_0_0, '0']

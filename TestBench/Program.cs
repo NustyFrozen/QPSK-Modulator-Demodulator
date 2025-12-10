@@ -11,13 +11,8 @@ const string address = "tcp://*:5555";
 using (var pub = new PublisherSocket())
 {
     pub.Bind(address);
-
-    // PUB/SUB gotcha: subscribers won’t receive anything
-    // until subscription has propagated. Often you:
-    // - sleep a little,
-    // - or repeatedly send frames (which we do anyway).
-   // Thread.Sleep(500);
+    Thread.Sleep(500);
    // TestModels.testModels();
-   // testFullDemodChain.RunTest(pub);
-    testAtDataLevel.RunTest(pub);
+    testFullDemodChain.RunTest(pub);
+   // testAtDataLevel.RunTest(pub);
 }

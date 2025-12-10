@@ -63,7 +63,7 @@ class testFullDemodulation(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 10e6
-        self.sym_rate = sym_rate = samp_rate/8
+        self.sym_rate = sym_rate = samp_rate/30
 
         ##################################################
         # Blocks
@@ -72,8 +72,8 @@ class testFullDemodulation(gr.top_block, Qt.QWidget):
         self.zeromq_sub_source_0_0_0_0 = zeromq.sub_source(gr.sizeof_gr_complex, 1, 'tcp://127.0.0.1:5555', 100, False, (-1), 'baseband_PostSymbolSyncPostCostas', False)
         self.zeromq_sub_source_0_0_0 = zeromq.sub_source(gr.sizeof_gr_complex, 1, 'tcp://127.0.0.1:5555', 100, False, (-1), 'baseband_PostSymbolSync', False)
         self.zeromq_sub_source_0 = zeromq.sub_source(gr.sizeof_gr_complex, 1, 'tcp://127.0.0.1:5555', 10000, False, (-1), 'baseband', False)
-        self.qtgui_freq_sink_x_0 = qtgui.freq_sink_c(
-            4096, #size
+        self.qtgui_freq_sink_x_1 = qtgui.freq_sink_c(
+            1024, #size
             window.WIN_HAMMING, #wintype
             0, #fc
             samp_rate, #bw
@@ -81,16 +81,16 @@ class testFullDemodulation(gr.top_block, Qt.QWidget):
             1,
             None # parent
         )
-        self.qtgui_freq_sink_x_0.set_update_time(0.01)
-        self.qtgui_freq_sink_x_0.set_y_axis((-140), 314)
-        self.qtgui_freq_sink_x_0.set_y_label('Relative Gain', 'dB')
-        self.qtgui_freq_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, 0.0, 0, "")
-        self.qtgui_freq_sink_x_0.enable_autoscale(False)
-        self.qtgui_freq_sink_x_0.enable_grid(False)
-        self.qtgui_freq_sink_x_0.set_fft_average(0.05)
-        self.qtgui_freq_sink_x_0.enable_axis_labels(True)
-        self.qtgui_freq_sink_x_0.enable_control_panel(False)
-        self.qtgui_freq_sink_x_0.set_fft_window_normalized(False)
+        self.qtgui_freq_sink_x_1.set_update_time(0.10)
+        self.qtgui_freq_sink_x_1.set_y_axis((-140), 10)
+        self.qtgui_freq_sink_x_1.set_y_label('Relative Gain', 'dB')
+        self.qtgui_freq_sink_x_1.set_trigger_mode(qtgui.TRIG_MODE_FREE, 0.0, 0, "")
+        self.qtgui_freq_sink_x_1.enable_autoscale(False)
+        self.qtgui_freq_sink_x_1.enable_grid(False)
+        self.qtgui_freq_sink_x_1.set_fft_average(1.0)
+        self.qtgui_freq_sink_x_1.enable_axis_labels(True)
+        self.qtgui_freq_sink_x_1.enable_control_panel(False)
+        self.qtgui_freq_sink_x_1.set_fft_window_normalized(True)
 
 
 
@@ -105,15 +105,15 @@ class testFullDemodulation(gr.top_block, Qt.QWidget):
 
         for i in range(1):
             if len(labels[i]) == 0:
-                self.qtgui_freq_sink_x_0.set_line_label(i, "Data {0}".format(i))
+                self.qtgui_freq_sink_x_1.set_line_label(i, "Data {0}".format(i))
             else:
-                self.qtgui_freq_sink_x_0.set_line_label(i, labels[i])
-            self.qtgui_freq_sink_x_0.set_line_width(i, widths[i])
-            self.qtgui_freq_sink_x_0.set_line_color(i, colors[i])
-            self.qtgui_freq_sink_x_0.set_line_alpha(i, alphas[i])
+                self.qtgui_freq_sink_x_1.set_line_label(i, labels[i])
+            self.qtgui_freq_sink_x_1.set_line_width(i, widths[i])
+            self.qtgui_freq_sink_x_1.set_line_color(i, colors[i])
+            self.qtgui_freq_sink_x_1.set_line_alpha(i, alphas[i])
 
-        self._qtgui_freq_sink_x_0_win = sip.wrapinstance(self.qtgui_freq_sink_x_0.qwidget(), Qt.QWidget)
-        self.top_layout.addWidget(self._qtgui_freq_sink_x_0_win)
+        self._qtgui_freq_sink_x_1_win = sip.wrapinstance(self.qtgui_freq_sink_x_1.qwidget(), Qt.QWidget)
+        self.top_layout.addWidget(self._qtgui_freq_sink_x_1_win)
         self.qtgui_eye_sink_x_0 = qtgui.eye_sink_c(
             4096, #size
             samp_rate, #samp_rate
@@ -256,7 +256,7 @@ class testFullDemodulation(gr.top_block, Qt.QWidget):
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.qtgui_eye_sink_x_0, 1))
         self.connect((self.zeromq_sub_source_0, 0), (self.qtgui_const_sink_x_0, 0))
         self.connect((self.zeromq_sub_source_0, 0), (self.qtgui_eye_sink_x_0, 0))
-        self.connect((self.zeromq_sub_source_0, 0), (self.qtgui_freq_sink_x_0, 0))
+        self.connect((self.zeromq_sub_source_0, 0), (self.qtgui_freq_sink_x_1, 0))
         self.connect((self.zeromq_sub_source_0_0_0, 0), (self.blocks_multiply_const_vxx_0, 0))
         self.connect((self.zeromq_sub_source_0_0_0_0, 0), (self.qtgui_const_sink_x_0, 2))
         self.connect((self.zeromq_sub_source_0_0_0_0, 0), (self.qtgui_const_sink_x_0_0, 0))
@@ -276,10 +276,10 @@ class testFullDemodulation(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
-        self.set_sym_rate(self.samp_rate/8)
+        self.set_sym_rate(self.samp_rate/30)
         self.qtgui_eye_sink_x_0.set_samp_rate(self.samp_rate)
         self.qtgui_eye_sink_x_0.set_samp_per_symbol((int(self.samp_rate/self.sym_rate)))
-        self.qtgui_freq_sink_x_0.set_frequency_range(0, self.samp_rate)
+        self.qtgui_freq_sink_x_1.set_frequency_range(0, self.samp_rate)
 
     def get_sym_rate(self):
         return self.sym_rate

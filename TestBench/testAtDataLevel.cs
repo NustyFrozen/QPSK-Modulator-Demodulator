@@ -14,7 +14,7 @@ public static class testAtDataLevel
 {
     public static void RunTest(PublisherSocket pub)
     {
-        int sampleRate = 10_000_000, SymbolRate = sampleRate / 20;
+        int sampleRate = 10_000_000, SymbolRate = sampleRate / 2;
         const int samplesPerFrame = 4096;     // must match "items per message" in GRC
         const int floatsPerSample = 2;        // I and Q
         const int bytesPerFloat = 4;

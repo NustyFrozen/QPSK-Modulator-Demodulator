@@ -6,19 +6,18 @@ using MathNet.Numerics;
 
 namespace Modulation_Simulation.Models;
 /// <summary>
-/// Constellation Mapping layout
-///
-/// mapping = AABBCCDD = 0b00011110 gray mapping
-/// phase:
-/// AA= +45
-/// BB= +135
-/// CC= -135
-/// DD= -45
+/// 
 /// </summary>
+/// <param name="SampleRate">The sampling rate of your transciever</param>
+/// <param name="SymbolRate">The symbol rate which correspond baud rate and cannot be higher than SampleRate/2</param>
+/// <param name="RrcAlpha">The Root raised cosine pulse Shaping Alpha</param>
+/// <param name="rrcSpan">the span of the RRC Root raise cosine filter common 4-10</param>
+/// <param name="differentialEncoding">use differentialEncoding to defeat phase ambiguity</param>
 public class QPSKModulator(int SampleRate,int SymbolRate,double RrcAlpha = .9,int rrcSpan = 6, bool differentialEncoding = true)
 {
     private double[] rrcCoeff = RRCFilter.generateCoefficents(rrcSpan, RrcAlpha, SampleRate,SymbolRate);
     public double[] getCoeef() => rrcCoeff;
+    public long baudRate = 2 * SymbolRate / 8;
     public Complex[] Modulate(string data,bool pulseShaping = true)
     {
         List<Complex> result = new List<Complex>();

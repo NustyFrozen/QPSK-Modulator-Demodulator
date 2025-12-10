@@ -56,11 +56,11 @@ public class MuellerMuller
             Complex currSample = Lerp(buffer, baseIndex, mu);
             Complex currDecision = CostasLoopQpsk.GetSign(currSample);
 
-            double advance;   // how many *samples* to move to the next symbol
+            double advance; 
 
             if (hasPrev)
             {
-                // Mueller–Muller TED: e = Re{ d_{k-1}* x_k - d_k* x_{k-1} }
+                // Mueller–Muller TED: e = { d_{k-1}* x_k - d_k* x_{k-1} }
                 Complex term1 = Complex.Conjugate(prevDecision) * currSample;
                 Complex term2 = Complex.Conjugate(currDecision) * prevSample;
                 double e = (term1 - term2).Real;

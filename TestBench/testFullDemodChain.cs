@@ -15,22 +15,34 @@ namespace TestBench
     {
         public static void RunTest(PublisherSocket pub)
         {
-            int sampleRate = 10_000_000, SymbolRate = sampleRate/20;
+            int sampleRate = 10_000_000, SymbolRate = sampleRate/30;
             const int samplesPerFrame = 4096;     // must match "items per message" in GRC
             const int floatsPerSample = 2;        // I and Q
             const int bytesPerFloat = 4;
-            ComplexFIRFilter rrc = new ComplexFIRFilter(RRCFilter.generateCoefficents(6, .9, sampleRate, SymbolRate).Select(x => new Complex(x, 0)).ToArray());
-            MuellerMuller symbolSync = new MuellerMuller(
-    sampleRate / SymbolRate,  // = 8
-    0.0097,                    // Kp (was 0.013)
-   .000006                    // Ki (was 1.7e-4)
-);
+            
+            ComplexFIRFilter rrc = new ComplexFIRFilter(RRCFilter.generateCoefficents(10, .9, sampleRate, SymbolRate).Select(x => new Complex(x, 0)).ToArray());
+            FLLBandEdgeFilter fll = new FLLBandEdgeFilter(sampleRate / SymbolRate, .9f, 10, 0.1f);
+            double R = SymbolRate;            // symbols per second, e.g. 2e6
+            double Bn_frac = 0.000002;           // 1% of symbol rate loop bandwidth
+            double zeta = 1.0 / Math.Sqrt(2.0);
+            double Kd = 1.0;            // assume M&M error is normalized
 
-            QPSKModulator modulator = new QPSKModulator(sampleRate, SymbolRate,.9);
-            NCO transmitter_unstable_NCO = new NCO(100e6, sampleRate, 1);
+            double omega_frac = 2.0 * Math.PI * Bn_frac;   // rad/sample (per symbol)
+
+            double Kp = 2.0 * zeta * omega_frac / Kd;
+            double Ki = omega_frac * omega_frac / Kd;
+
+            MuellerMuller symbolSync = new MuellerMuller(
+                sampleRate / SymbolRate,  // samples per symbol
+                Kp,
+                Ki
+            );
+
+            QPSKModulator modulator = new QPSKModulator(sampleRate, SymbolRate,.9,10);
+            NCO transmitter_unstable_NCO = new NCO(100_400_000, sampleRate, 1);
             NCO receiver_unstable_NCO = new NCO(100e6, sampleRate, 1);
 
-            CostasLoopQpsk costas = new CostasLoopQpsk(SymbolRate, SymbolRate / 40);
+            CostasLoopQpsk costas = new CostasLoopQpsk(SymbolRate, SymbolRate / 10);
             var rand = new Random();
             int pos = 0;
             bool generateNewSignal = false;
@@ -58,7 +70,8 @@ namespace TestBench
                         pos = 0;
                     }
                     //two lo with drifts
-                    var sample = modulatedSignal[pos++]* transmitter_unstable_NCO.NextSample() * receiver_unstable_NCO.NextSample().Conjugate() + new Complex(noise[2 * n], noise[2 * n + 1]);
+                    var sample = ((modulatedSignal[pos++] +new Complex(noise[2 * n], noise[2 * n + 1])) * transmitter_unstable_NCO.NextSample() * receiver_unstable_NCO.NextSample().Conjugate());
+                    sample = fll.Process(sample);
                     SignalPreSync[2 * n] = (float)sample.Real; // I
                     SignalPreSync[2 * n + 1] = (float)sample.Imaginary ; // Q
 
