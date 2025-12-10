@@ -10,6 +10,7 @@ namespace Modulation_Simulation.Models;
     public class QPSKDeModulator(int SampleRate, int SymbolRate,float RrcAlpha = 0.9f, float threshold = 1f, int rrcSpan = 6,double SymbolSyncBandwith= 0.000002, bool differentialEncoding = true)
     {
     ComplexFIRFilter rrc = new ComplexFIRFilter(RRCFilter.generateCoefficents(rrcSpan, RrcAlpha, SampleRate, SymbolRate).Select(x => new Complex(x, 0)).ToArray());
+    FLLBandEdgeFilter fll = new FLLBandEdgeFilter(SampleRate / SymbolRate, RrcAlpha, 10, 0.001f);
     MuellerMuller symbolSync = new MuellerMuller(SampleRate / SymbolRate,
        (1 / Math.Sqrt(2.0))* 4.0 * Math.PI * SymbolSyncBandwith,                    // Kp (was 0.013)
   Math.Pow(2.0 * Math.PI * SymbolSyncBandwith,2));
@@ -27,6 +28,7 @@ namespace Modulation_Simulation.Models;
     };
     public string DeModulate(Complex[] Samples)
     {
+        Samples = fll.Process(Samples);
         var processedSignal = symbolSync.Process(rrc.Filter(Samples));
         var bits = new System.Text.StringBuilder(processedSignal.Count * 2);
 
@@ -45,6 +47,12 @@ namespace Modulation_Simulation.Models;
         }
 
         return bits.ToString();
+    }
+    public Complex[] deModulateConstellation(Complex[] Samples)
+    {
+        Samples = fll.Process(Samples);
+        var processedSignal = symbolSync.Process(rrc.Filter(Samples));
+        return Samples.Select(x => costas.Process(x)).ToArray();
     }
 
 }
