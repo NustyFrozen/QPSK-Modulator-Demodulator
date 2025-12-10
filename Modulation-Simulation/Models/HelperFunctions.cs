@@ -77,7 +77,7 @@ public static class HelperFunctions
 
         if (n < 2) return hd;
 
-        // interior points – central difference
+        // interior points ï¿½ central difference
         for (int i = 1; i < n - 1; i++)
         {
             hd[i] = (h[i + 1] - h[i - 1]) / (2.0 * Ts);

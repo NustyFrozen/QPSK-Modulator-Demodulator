@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 
 namespace Modulation_Simulation.Models;
@@ -33,7 +34,15 @@ public class ComplexFIRFilter
 
             return acc;
         }
+    public Complex[] Filter(Complex[] data)
+    {
+        var results = new Complex[data.Length].AsSpan();
+        for (int i = 0; i < data.Length; i++)
+            results[i] = Filter(data[i]);
+        return results.ToArray();
     }
+
+}
 public class RealFIRFilter
 {
     readonly double[] taps;

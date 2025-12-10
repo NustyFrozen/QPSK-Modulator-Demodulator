@@ -15,12 +15,15 @@ namespace Modulation_Simulation.Models;
 /// CC= -135
 /// DD= -45
 /// </summary>
-public class QPSKModulator(int SampleRate,int SymbolRate,double RrcAlpha = 0.7,int rrcSpan = 6)
+public class QPSKModulator(int SampleRate,int SymbolRate,double RrcAlpha = .9,int rrcSpan = 6, bool differentialEncoding = true)
 {
     private double[] rrcCoeff = RRCFilter.generateCoefficents(rrcSpan, RrcAlpha, SampleRate,SymbolRate);
+    public double[] getCoeef() => rrcCoeff;
     public Complex[] Modulate(string data,bool pulseShaping = true)
     {
         List<Complex> result = new List<Complex>();
+        //adding delay for pulse shaping
+        result.AddRange(Enumerable.Range(0, (int)(rrcCoeff.Length - 1) / 2).Select(x=>new Complex(0,0)));
         var samplesPerSymbol = Convert.ToInt32(SampleRate / SymbolRate);
         char[] data_str = data.ToCharArray();
         //simple modulation
@@ -36,7 +39,8 @@ public class QPSKModulator(int SampleRate,int SymbolRate,double RrcAlpha = 0.7,i
         }
         if (!pulseShaping)
             return result.ToArray();
-
+        //adding delay for pulse shaping
+        result.AddRange(Enumerable.Range(0, (int)(rrcCoeff.Length - 1) / 2).Select(x => new Complex(0, 0)));
         //pulse Shaping
         return result.ToArray().FftConvolve(rrcCoeff);
     }

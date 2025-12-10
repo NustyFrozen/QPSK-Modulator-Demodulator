@@ -11,21 +11,26 @@ using System.Threading.Tasks;
 
 namespace TestBench
 {
-    public static class testFullDemodulation
+    public static class testFullDemodChain
     {
         public static void RunTest(PublisherSocket pub)
         {
-            int sampleRate = 10_000_000, SymbolRate = sampleRate/8;
+            int sampleRate = 10_000_000, SymbolRate = sampleRate/20;
             const int samplesPerFrame = 4096;     // must match "items per message" in GRC
             const int floatsPerSample = 2;        // I and Q
             const int bytesPerFloat = 4;
             ComplexFIRFilter rrc = new ComplexFIRFilter(RRCFilter.generateCoefficents(6, .9, sampleRate, SymbolRate).Select(x => new Complex(x, 0)).ToArray());
-            MuellerMuller symbolSync = new MuellerMuller(sampleRate / SymbolRate, 1e-3, 1e-7);
+            MuellerMuller symbolSync = new MuellerMuller(
+    sampleRate / SymbolRate,  // = 8
+    0.0097,                    // Kp (was 0.013)
+   .000006                    // Ki (was 1.7e-4)
+);
+
             QPSKModulator modulator = new QPSKModulator(sampleRate, SymbolRate,.9);
             NCO transmitter_unstable_NCO = new NCO(100e6, sampleRate, 1);
             NCO receiver_unstable_NCO = new NCO(100e6, sampleRate, 1);
 
-            CostasLoopQpsk costas = new CostasLoopQpsk(sampleRate, SymbolRate / 4);
+            CostasLoopQpsk costas = new CostasLoopQpsk(SymbolRate, SymbolRate / 40);
             var rand = new Random();
             int pos = 0;
             bool generateNewSignal = false;
@@ -34,7 +39,10 @@ namespace TestBench
             generateNewSignal = false;
             string data = string.Empty;
             for (int i = 0; i < 4096; i++)
-                data += rand.Next(0, 2).ToString(); //01100011...
+            {
+               var sym = rand.Next(0, 2).ToString(); //01100011...
+                data += sym;
+            }
             var modulatedSignal = modulator.Modulate(data);
             var noise = NoiseGenerator.GenerateIqNoise(-90, samplesPerFrame * floatsPerSample);
             while (true)

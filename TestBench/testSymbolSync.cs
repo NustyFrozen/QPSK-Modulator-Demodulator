@@ -48,7 +48,7 @@ namespace TestBench
                         pos = 0;
                     }
                     //two lo with drifts
-                    var sample = modulatedSignal[pos++];// * transmitter_unstable_NCO.NextSample() * receiver_unstable_NCO.NextSample().Conjugate();
+                    var sample = modulatedSignal[pos++]* transmitter_unstable_NCO.NextSample() * receiver_unstable_NCO.NextSample().Conjugate();
                     SignalPreSync[2 * n] = (float)sample.Real; // I
                     SignalPreSync[2 * n + 1] = (float)sample.Imaginary; // Q
 
