@@ -3,9 +3,13 @@ This repository is a working prototype of QPSK (Quadrature phase shift keying) m
 <br>
 
 ## Simulations:
-|  SDR Simulation| Description |
-| ----------- | ----------- |
-| yes | yes|
+### SDR Test
+https://github.com/user-attachments/assets/674c7288-a754-4996-8839-5d62c6617ec3
+
+### RF Simulation
+https://github.com/user-attachments/assets/6042c9d5-f562-477f-801c-027d9fddc0c0
+
+
 ##  Solution tree:
 ### QPSK (main module):
 - QPSKDeModulator
