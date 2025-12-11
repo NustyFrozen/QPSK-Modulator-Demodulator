@@ -1,0 +1,12 @@
+# Hide Python files from language statistics
+*.py linguist-vendored
+
+# Hide C++ files
+*.cpp linguist-vendored
+*.hpp linguist-vendored
+*.cc  linguist-vendored
+*.hh  linguist-vendored
+
+# Hide C files
+*.c   linguist-vendored
+*.h   linguist-vendored
