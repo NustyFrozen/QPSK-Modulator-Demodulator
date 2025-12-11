@@ -1,3 +1,4 @@
+using MathNet.Numerics.IntegralTransforms;
 using System;
 using System.Numerics;
 
@@ -15,8 +16,57 @@ public class ComplexFIRFilter
             delay = new Complex[taps.Length];
             index = 0;
         }
+    /// <summary>
+    /// FFT-based convolution: filters the whole buffer at once.
+    /// </summary>
+    public Complex[] fftFilter(Complex[] data)
+    {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (data.Length == 0) return Array.Empty<Complex>();
 
-        public Complex Filter(Complex x)
+        int nData = data.Length;
+        int nTaps = taps.Length;
+        int nConv = nData + nTaps - 1;
+
+        // Choose FFT size as next power-of-two >= nConv
+        int fftSize = 1;
+        while (fftSize < nConv) fftSize <<= 1;
+
+        // Prepare FFT buffers
+        var X = new Complex[fftSize];
+        var H = new Complex[fftSize];
+
+        Array.Copy(data, X, nData);
+        Array.Copy(taps, H, nTaps);
+
+        // Forward FFT
+        Fourier.Forward(X, FourierOptions.Matlab);
+        Fourier.Forward(H, FourierOptions.Matlab);
+
+        // Pointwise multiply in frequency domain
+        for (int i = 0; i < fftSize; i++)
+        {
+            X[i] *= H[i];
+        }
+
+        // Inverse FFT (MathNet's Matlab option does 1/N scaling in the inverse)
+        Fourier.Inverse(X, FourierOptions.Matlab);
+
+        // X now contains the linear convolution result of length nConv
+        var y = new Complex[nData]; // if you want "filter-like" output same length as input
+
+        // Standard causal FIR: y[k] = sum h[i]*x[k-i]
+        // The raw linear convolution has length nData+nTaps-1; 
+        // the "aligned" part for x[0..nData-1] is indices (nTaps-1 .. nTaps-1 + nData-1)
+        int offset = nTaps - 1;
+        for (int i = 0; i < nData; i++)
+        {
+            y[i] = X[offset + i];
+        }
+
+        return y;
+    }
+    public Complex Filter(Complex x)
         {
             delay[index] = x;
             Complex acc = Complex.Zero;

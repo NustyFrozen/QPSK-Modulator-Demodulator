@@ -7,16 +7,17 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Modulation_Simulation.Models;
-    public class QPSKDeModulator(int SampleRate, int SymbolRate,float RrcAlpha = 0.9f, float threshold = 1f, int rrcSpan = 6,double SymbolSyncBandwith= 0.000002, bool differentialEncoding = true)
+    public class QPSKDeModulator(int SampleRate, int SymbolRate,float RrcAlpha = 0.9f, float threshold = 1f, int rrcSpan = 6,float magnitudeScaling = 3.0f,double SymbolSyncBandwith= 0.00004, bool differentialEncoding = true)
     {
     ComplexFIRFilter rrc = new ComplexFIRFilter(RRCFilter.generateCoefficents(rrcSpan, RrcAlpha, SampleRate, SymbolRate).Select(x => new Complex(x, 0)).ToArray());
-    FLLBandEdgeFilter fll = new FLLBandEdgeFilter(SampleRate / SymbolRate, RrcAlpha, 10, 0.001f);
+    FLLBandEdgeFilter fll = new FLLBandEdgeFilter(SampleRate / SymbolRate, RrcAlpha, 40, 0.000000001f);
+    // i need to fix the fll, if you have static offset just subtract it at the receiver's lo
     MuellerMuller symbolSync = new MuellerMuller(SampleRate / SymbolRate,
-       (1 / Math.Sqrt(2.0))* 4.0 * Math.PI * SymbolSyncBandwith,                    // Kp (was 0.013)
+       (1 / Math.Sqrt(2.0))* 4.0 * Math.PI * SymbolSyncBandwith,                  
   Math.Pow(2.0 * Math.PI * SymbolSyncBandwith,2));
     CostasLoopQpsk costas = new CostasLoopQpsk(
-    SymbolRate,          // this is the real fs for costas.Process(...)
-    SymbolRate / 100.0   // BW ≈ 0.01 * Rs (keep or tweak as you like)
+    SymbolRate,         
+    SymbolRate / 100  
 );
 
     Dictionary<Complex, string> symbolMapping = new()
@@ -28,7 +29,7 @@ namespace Modulation_Simulation.Models;
     };
     public string DeModulate(Complex[] Samples)
     {
-        Samples = fll.Process(Samples);
+       // Samples = fll.Process(Samples);
         var processedSignal = symbolSync.Process(rrc.Filter(Samples));
         var bits = new System.Text.StringBuilder(processedSignal.Count * 2);
 
@@ -50,8 +51,10 @@ namespace Modulation_Simulation.Models;
     }
     public Complex[] deModulateConstellation(Complex[] Samples)
     {
-        Samples = fll.Process(Samples);
-        var processedSignal = symbolSync.Process(rrc.Filter(Samples));
+
+        //Samples = fll.Process(Samples);
+        Samples = Samples.Select(x=>x * magnitudeScaling).ToArray();
+        Samples = symbolSync.Process(rrc.Filter(Samples)).ToArray();
         return Samples.Select(x => costas.Process(x)).ToArray();
     }
 

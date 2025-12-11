@@ -109,7 +109,7 @@ blocks:
     marker8: '0'
     marker9: '0'
     name: '""'
-    nconnections: '1'
+    nconnections: '2'
     size: '400'
     style1: '0'
     style10: '0'
@@ -149,6 +149,98 @@ blocks:
     coordinate: [816, 388.0]
     rotation: 0
     state: enabled
+- name: qtgui_const_sink_x_0_0
+  id: qtgui_const_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'False'
+    axislabels: 'True'
+    color1: '"blue"'
+    color10: '"dark blue"'
+    color2: '"red"'
+    color3: '"green"'
+    color4: '"black"'
+    color5: '"cyan"'
+    color6: '"magenta"'
+    color7: '"yellow"'
+    color8: '"dark red"'
+    color9: '"dark green"'
+    comment: ''
+    grid: 'True'
+    gui_hint: ''
+    label1: raw signal
+    label10: ''
+    label2: symbol sync
+    label3: costas loop
+    label4: ''
+    label5: ''
+    label6: ''
+    label7: ''
+    label8: ''
+    label9: ''
+    legend: 'True'
+    marker1: '0'
+    marker10: '0'
+    marker2: '0'
+    marker3: '0'
+    marker4: '0'
+    marker5: '0'
+    marker6: '0'
+    marker7: '0'
+    marker8: '0'
+    marker9: '0'
+    name: '""'
+    nconnections: '1'
+    size: '400'
+    style1: '0'
+    style10: '0'
+    style2: '0'
+    style3: '0'
+    style4: '0'
+    style5: '0'
+    style6: '0'
+    style7: '0'
+    style8: '0'
+    style9: '0'
+    tr_chan: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: complex
+    update_time: '0.10'
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    xmax: '2'
+    xmin: '-2'
+    ymax: '2'
+    ymin: '-2'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [672, 476.0]
+    rotation: 0
+    state: enabled
 - name: qtgui_eye_sink_x_0
   id: qtgui_eye_sink_x
   parameters:
@@ -184,8 +276,8 @@ blocks:
     label1: RAW I
     label10: Signal 10
     label2: RAW Q
-    label3: SYNC I
-    label4: SYNC Q
+    label3: DEMOD I
+    label4: DEMOD Q
     label5: COSTAS I
     label6: COSTAS Q
     label7: Signal 7
@@ -202,7 +294,7 @@ blocks:
     marker7: '-1'
     marker8: '-1'
     marker9: '-1'
-    nconnections: '1'
+    nconnections: '2'
     samp_per_symbol: int(samp_rate/sym_rate)
     size: '4096'
     srate: samp_rate
@@ -282,9 +374,9 @@ blocks:
     grid: 'False'
     gui_hint: ''
     label: Relative Gain
-    label1: ''
+    label1: baseband
     label10: ''''''
-    label2: ''''''
+    label2: demodulated
     label3: ''''''
     label4: ''''''
     label5: ''''''
@@ -296,7 +388,7 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     name: '""'
-    nconnections: '1'
+    nconnections: '2'
     norm_window: 'True'
     showports: 'False'
     tr_chan: '0'
@@ -349,11 +441,38 @@ blocks:
     coordinate: [160, 200.0]
     rotation: 0
     state: enabled
+- name: zeromq_sub_source_0_0
+  id: zeromq_sub_source
+  parameters:
+    address: tcp://127.0.0.1:5555
+    affinity: ''
+    alias: ''
+    bind: 'False'
+    comment: ''
+    hwm: '-1'
+    key: baseband_demodulated
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    pass_tags: 'False'
+    timeout: '10000'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [160, 352.0]
+    rotation: 0
+    state: enabled
 
 connections:
 - [zeromq_sub_source_0, '0', qtgui_const_sink_x_0, '0']
 - [zeromq_sub_source_0, '0', qtgui_eye_sink_x_0, '0']
 - [zeromq_sub_source_0, '0', qtgui_freq_sink_x_1, '0']
+- [zeromq_sub_source_0_0, '0', qtgui_const_sink_x_0, '1']
+- [zeromq_sub_source_0_0, '0', qtgui_const_sink_x_0_0, '0']
+- [zeromq_sub_source_0_0, '0', qtgui_eye_sink_x_0, '1']
+- [zeromq_sub_source_0_0, '0', qtgui_freq_sink_x_1, '1']
 
 metadata:
   file_format: 1

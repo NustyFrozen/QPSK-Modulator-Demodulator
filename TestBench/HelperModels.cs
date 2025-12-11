@@ -59,9 +59,9 @@ namespace TestBench
         public static Complex[] toComplex(this float[] results)
         {
             Complex[] input = new Complex[results.Length/2];
-            for (int i = 0; i < results.Length; i += 2)
+            for (int i = 0; i < input.Length; i++)
             {
-                input[i / 2] = new Complex(results[i], results[i + 1]);
+                input[i] = new Complex(results[i*2], results[i*2 + 1]);
             }
             return input;
         }

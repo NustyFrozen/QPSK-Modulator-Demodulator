@@ -23,7 +23,7 @@ namespace TestBench.Simulated
             ComplexFIRFilter rrc = new ComplexFIRFilter(RRCFilter.generateCoefficents(10, .9, sampleRate, SymbolRate).Select(x => new Complex(x, 0)).ToArray());
             FLLBandEdgeFilter fll = new FLLBandEdgeFilter(sampleRate / SymbolRate, .9f, 10, 0.1f);
             double R = SymbolRate;            // symbols per second, e.g. 2e6
-            double Bn_frac = 0.000002;           // 1% of symbol rate loop bandwidth
+            double Bn_frac = 0.000000002;           // 1% of symbol rate loop bandwidth
             double zeta = 1.0 / Math.Sqrt(2.0);
             double Kd = 1.0;            // assume M&M error is normalized
 
@@ -39,8 +39,8 @@ namespace TestBench.Simulated
             );
 
             QPSKModulator modulator = new QPSKModulator(sampleRate, SymbolRate,.9,10);
-            NCO transmitter_unstable_NCO = new NCO(100_400_000, sampleRate, 1);
-            NCO receiver_unstable_NCO = new NCO(100e6, sampleRate, 1);
+            NCO transmitter_unstable_NCO = new NCO(935e6, sampleRate, 20,120);
+            NCO receiver_unstable_NCO = new NCO(935e6, sampleRate, 10,30);
 
             CostasLoopQpsk costas = new CostasLoopQpsk(SymbolRate, SymbolRate / 10);
             var rand = new Random();
