@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 
-namespace Modulation_Simulation.Models;
+namespace QPSK.Models;
 
 public static class HelperFunctions
 {

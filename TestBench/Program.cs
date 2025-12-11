@@ -1,4 +1,4 @@
-﻿using Modulation_Simulation.Models;
+﻿using QPSK.Models;
 using NetMQ;
 using NetMQ.Sockets;
 using System;
@@ -13,7 +13,8 @@ using (var pub = new PublisherSocket())
 {
     pub.Bind(address);
     Thread.Sleep(500);
-   // TestModels.testModels();
+   // testAtDataLevel.RunTest(pub);
+    //TestModels.testModels();
    // testFullDemodChain.RunTest(pub);
     ModDemodOverSDR.runTest(pub);
 }

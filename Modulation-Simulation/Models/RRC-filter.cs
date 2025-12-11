@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 
-namespace Modulation_Simulation.Models;
+namespace QPSK.Models;
 
 public class RRCFilter
 {

@@ -2,7 +2,7 @@ using MathNet.Numerics.IntegralTransforms;
 using System;
 using System.Numerics;
 
-namespace Modulation_Simulation.Models;
+namespace QPSK.Models;
 
 public class ComplexFIRFilter
     {

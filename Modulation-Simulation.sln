@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36221.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modulation-Simulation", "Modulation-Simulation\Modulation-Simulation.csproj", "{8D037F1F-3209-43AF-31C1-77A7AE2333C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QPSK", "Modulation-Simulation\QPSK.csproj", "{8D037F1F-3209-43AF-31C1-77A7AE2333C1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestBench", "TestBench\TestBench.csproj", "{D178262F-4CD6-44D9-AB6C-7A13D280A574}"
 EndProject

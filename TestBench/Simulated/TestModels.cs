@@ -1,11 +1,11 @@
-﻿using Modulation_Simulation.Models;
+﻿using QPSK.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using Modulation_Simulation.Models;
+using QPSK;
 namespace TestBench.Simulated
 {
     public static class TestModels

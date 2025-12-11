@@ -1,4 +1,4 @@
-﻿using Modulation_Simulation.Models;
+﻿using QPSK.Models;
 using NetMQ;
 using NetMQ.Sockets;
 using Pothosware.SoapySDR;
@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
-
+using QPSK;
 namespace TestBench.SDR
 {
     public class ModDemodOverSDR
@@ -36,7 +36,7 @@ namespace TestBench.SDR
             Device Device = new Device("driver=uhd");
             int sampleRate = 1_000_000;
             var frequency = 150e6;
-            var SymbolRate = sampleRate / 5;
+            var SymbolRate = sampleRate / 2;
             const float RRCAlpha = .6f;
             const int rrcSpan = 10;
             QPSKModulator mod = new QPSKModulator(sampleRate, SymbolRate, RRCAlpha,rrcSpan);

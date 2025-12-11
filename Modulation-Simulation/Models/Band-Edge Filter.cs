@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Modulation_Simulation.Models;
+namespace QPSK.Models;
     /// <summary>
     /// FLL band-edge filter (port of GNU Radio fll_band_edge_cc_impl).
     /// </summary>

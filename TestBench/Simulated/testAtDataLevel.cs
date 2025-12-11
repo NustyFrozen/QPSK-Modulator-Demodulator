@@ -1,5 +1,5 @@
 ﻿using MathNet.Numerics;
-using Modulation_Simulation.Models;
+using QPSK.Models;
 using NetMQ;
 using NetMQ.Sockets;
 using System;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-
+using QPSK;
 namespace TestBench.Simulated;
 public static class testAtDataLevel
 {
