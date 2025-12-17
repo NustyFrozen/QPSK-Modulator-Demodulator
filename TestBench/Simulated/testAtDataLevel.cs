@@ -15,44 +15,45 @@ public static class testAtDataLevel
     public static void RunTest(PublisherSocket pub)
     {
         int sampleRate = 10_000_000, SymbolRate = sampleRate / 2;
-        const int samplesPerFrame = 4096;     // must match "items per message" in GRC
-        const int floatsPerSample = 2;        // I and Q
-        const int bytesPerFloat = 4;
-        const float RRCAlpha = .9f;
-        QPSKModulator mod = new QPSKModulator(sampleRate, SymbolRate, RRCAlpha);
-        QPSKDeModulator demod= new QPSKDeModulator(sampleRate, SymbolRate, RRCAlpha);
+        const float RRCAlpha = .4f;
+
+        const string TSC =
+            "11001010011101100100100110101100" +
+            "01110100111001011010001101101001"; // even length
+
+        QPSKModulator mod = new QPSKModulator(sampleRate, SymbolRate, RRCAlpha,10, tsc: TSC);
+        QPSKDeModulator demod = new QPSKDeModulator(sampleRate, SymbolRate, RRCAlpha, 10, tsc: TSC);
+
         NCO transmitter_unstable_NCO = new NCO(100e6, sampleRate, 1);
         NCO receiver_unstable_NCO = new NCO(100e6, sampleRate, 1);
+
         var rand = new Random();
-        
-        var noise = NoiseGenerator.GenerateIqNoise(-90, samplesPerFrame * floatsPerSample);
-       
+
         while (true)
         {
-            var data = string.Empty;
-            for (int i = 0; i < 32; i++)
-                data += rand.Next(0, 2).ToString(); //01100011...
-            var modulatedSignal = mod.Modulate(data);
+            // payload only
+            var data = "The Quick Brown fox jump yes yes man good!";
 
-            //simulating over air and back transmission of real life LO
-            modulatedSignal = modulatedSignal.Multiply(Enumerable.Range(0, modulatedSignal.Length)
-                .Select(x => transmitter_unstable_NCO.NextSample() * receiver_unstable_NCO.NextSample().Conjugate()).ToArray()); //upsample and downsample mixing
-            var demodulatedData = demod.DeModulate(modulatedSignal);
-            bool passed = data == demodulatedData;
+            var modulatedSignal = mod.ModulateTextUtf8(data,"MESSAGE_START", "MESSAGE_STOP").toComplex();
+
+            modulatedSignal = modulatedSignal.Multiply(
+                Enumerable.Range(0, modulatedSignal.Length)
+                    .Select(_ => transmitter_unstable_NCO.NextSample() * receiver_unstable_NCO.NextSample().Conjugate())
+                    .ToArray());
+
+            var demodulatedData = demod.DeModulateTextUtf8(modulatedSignal.toFloatInterleaved(), "MESSAGE_START", "MESSAGE_STOP");
+
+            bool passed = demodulatedData.Contains(data); // TSC already stripped by demod
             var results = $"{data} | {demodulatedData}";
 
-            Enumerable.Range(0, Math.Max(0, results.Length / 2 - "EXPECTED | GOT".Length / 2 -2)).All(x =>
-            {
-                Console.Write(" ");
-                return true;
-            });
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("EXPECTED | GOT (PRESS a key to re-run test)");
-            Console.ForegroundColor = passed ? ConsoleColor.Green:ConsoleColor.Red;
+            Console.WriteLine("EXPECTED | GOT (payload only; TSC baked in)");
+
+            Console.ForegroundColor = passed ? ConsoleColor.Green : ConsoleColor.Red;
             Console.WriteLine(results);
-            
+
             Console.ReadKey();
             Console.Clear();
         }
     }
-    }
+}

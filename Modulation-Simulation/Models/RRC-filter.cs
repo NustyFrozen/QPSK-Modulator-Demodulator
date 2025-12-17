@@ -23,10 +23,6 @@ public class RRCFilter
         double spsExact = (double)sampleRate / SymbolRate;
         int sps = (int)Math.Round(spsExact);
 
-        // optional consistency check
-        // if (Math.Abs(spsExact - sps) > 1e-6)
-        //     throw new ArgumentException("sampleRate / SymbolRate must be integer.");
-
         int spanSymInt = (int)Math.Round(spanSymbols);
         int taps = spanSymInt * sps + 1;
 

@@ -13,7 +13,7 @@ using (var pub = new PublisherSocket())
 {
     pub.Bind(address);
     Thread.Sleep(500);
-   // testAtDataLevel.RunTest(pub);
+    //testAtDataLevel.RunTest(pub);
     //TestModels.testModels();
    // testFullDemodChain.RunTest(pub);
     ModDemodOverSDR.runTest(pub);

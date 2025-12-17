@@ -49,7 +49,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: samp_rate/40
+    value: samp_rate/2
   states:
     bus_sink: false
     bus_source: false
@@ -241,6 +241,28 @@ blocks:
     coordinate: [672, 476.0]
     rotation: 0
     state: enabled
+- name: qtgui_edit_box_msg_0
+  id: qtgui_edit_box_msg
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    gui_hint: ''
+    is_pair: 'True'
+    is_static: 'False'
+    key: ''
+    label: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: string
+    value: ''
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [512, 64.0]
+    rotation: 0
+    state: disabled
 - name: qtgui_eye_sink_x_0
   id: qtgui_eye_sink_x
   parameters:
@@ -397,7 +419,7 @@ blocks:
     tr_tag: '""'
     type: complex
     units: dB
-    update_time: '0.10'
+    update_time: '0.01'
     width1: '1'
     width10: '1'
     width2: '1'
@@ -418,6 +440,24 @@ blocks:
     coordinate: [832, 76.0]
     rotation: 0
     state: enabled
+- name: zeromq_sub_msg_source_0
+  id: zeromq_sub_msg_source
+  parameters:
+    address: tcp://127.0.0.1:5555
+    affinity: ''
+    alias: ''
+    bind: 'False'
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    timeout: '100'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [152, 116.0]
+    rotation: 0
+    state: disabled
 - name: zeromq_sub_source_0
   id: zeromq_sub_source
   parameters:
@@ -466,6 +506,7 @@ blocks:
     state: enabled
 
 connections:
+- [zeromq_sub_msg_source_0, out, qtgui_edit_box_msg_0, val]
 - [zeromq_sub_source_0, '0', qtgui_const_sink_x_0, '0']
 - [zeromq_sub_source_0, '0', qtgui_eye_sink_x_0, '0']
 - [zeromq_sub_source_0, '0', qtgui_freq_sink_x_1, '0']

@@ -33,25 +33,33 @@ namespace TestBench.SDR
             SetupSoapyEnvironment();
             
             //testing on UHD 4.8 usrp b205
-            Device Device = new Device("driver=uhd");
-            int sampleRate = 1_000_000;
-            var frequency = 150e6;
+            Device Device = new Device("driver=uhd,send_buff_size=4096,recv_buff_size=4096");
+            int sampleRate = 1_500_000;
+            var frequency = 935e6;
             var SymbolRate = sampleRate / 2;
-            const float RRCAlpha = .6f;
-            const int rrcSpan = 10;
-            QPSKModulator mod = new QPSKModulator(sampleRate, SymbolRate, RRCAlpha,rrcSpan);
-            QPSKDeModulator demod = new QPSKDeModulator(sampleRate, SymbolRate, RRCAlpha, rrcSpan);
-            
-            
+            const float RRCAlpha = .1f,symbolLoopBandwith= 0.000001f, costas=130;
+            const int rrcSpan = 8;
+             string TSC =
+            "11001010011101100100100110101100" +
+            "01110100111001011010001101101001";
+            TSC += TSC ;
+            string prefix_start = "MESSAGE_START", prefix_end = "MESSAGE_STOP";
+            QPSKModulator mod = new QPSKModulator(sampleRate, SymbolRate, RRCAlpha,rrcSpan,tsc: TSC);
+            QPSKDeModulator demod = new QPSKDeModulator(sampleRate, SymbolRate, RRCAlpha, rrcSpan,CostasLoopBandwith:costas,SymbolSyncBandwith:symbolLoopBandwith);
+            QPSKDeModulator demod_data = new QPSKDeModulator(sampleRate, SymbolRate, RRCAlpha, rrcSpan, CostasLoopBandwith: costas, SymbolSyncBandwith: symbolLoopBandwith);
+
+
             Device.SetSampleRate(Direction.Rx, 0, sampleRate);
             Device.SetSampleRate(Direction.Tx, 0, sampleRate);
             Device.SetFrequency(Direction.Rx, 0,
                 frequency);
             Device.SetFrequency(Direction.Tx, 0,
                 frequency);
-            Device.SetGain(Direction.Tx, 0, 60);
-           // Device.SetGainMode(Direction.Rx, 0, true);
-             Device.SetGain(Direction.Rx, 0,35);
+            Device.SetGain(Direction.Tx, 0, 46);
+            // Device.SetGainMode(Direction.Rx, 0, true);
+           
+            Device.SetGain(Direction.Rx, 0,28);
+            // Device.SetGain(Direction.Rx, 0,68); //with antenna
             var rxStream = Device.SetupRxStream(StreamFormat.ComplexFloat32,
                 new[] { (uint)0 }, "");
             var txStream = Device.SetupTxStream(StreamFormat.ComplexFloat32,
@@ -59,8 +67,10 @@ namespace TestBench.SDR
             
             var rxMtu = rxStream.MTU;
             var txMtu = txStream.MTU;
-            var results = new StreamResult();
-            var rxFloatBuffer = new float[rxMtu * 2];
+            var tx_results = new StreamResult();
+            var rx_results = new StreamResult();
+
+            var rxFloatBuffer = new float[rxMtu *2];
             int sps = sampleRate / SymbolRate;
 
 
@@ -72,14 +82,10 @@ namespace TestBench.SDR
             int nSym = upsampledLenWithoutFilter / sps;
             int nBits = nSym * 2;
 
-            var sb = new StringBuilder(nBits);
-            var rand = new Random();
-            for (int i = 0; i < nBits; i++)
-                sb.Append((char)('0' + rand.Next(0, 2)));
-
-            var modulated = mod.Modulate(sb.ToString());
-            var modulatedQPSKSignal = modulated.toFloatInterleaved();
-
+            var data = string.Empty;
+            Enumerable.Range(0, 1000).Select(x => data += "Hello World ").ToArray();
+            var modulatedQPSKSignal = mod.ModulateTextUtf8(data, prefix_start,prefix_end);
+            Console.WriteLine($"Sending (size {(data.Length + prefix_end.Length + prefix_start.Length)}Bytes per frame): {new string(data.Take(10).ToArray())}..."); //single char is 1 byte
             var rxBufferHandle = GCHandle.Alloc(rxFloatBuffer, GCHandleType.Pinned);
             var txBufferHandle = GCHandle.Alloc(modulatedQPSKSignal, GCHandleType.Pinned);
 
@@ -92,9 +98,9 @@ namespace TestBench.SDR
                 {
                     while (keepTransmission)
                     {
-                        var errorCode = txStream.Write((nint)bufferPtr, (uint)txMtu, StreamFlags.None, 0, 10_000_000,
-                            out results);
-                        if (errorCode is not Pothosware.SoapySDR.ErrorCode.None || results is null)
+                        var errorCode = txStream.Write((nint)bufferPtr, (uint)modulatedQPSKSignal.Length/2, StreamFlags.None, 0, 10_000_000,
+                            out tx_results);
+                        if (errorCode is not Pothosware.SoapySDR.ErrorCode.None || tx_results is null)
                         {
                             Console.WriteLine($"TXSTREAM -->{errorCode}");
                         }
@@ -118,23 +124,28 @@ namespace TestBench.SDR
                     {
 
                         sw.Restart();
-                        var errorCode = rxStream.Read((nint)bufferPtr, (uint)rxMtu, 10_000_000, out results);
+                        var errorCode = rxStream.Read((nint)bufferPtr, (uint)rxMtu, 10_000_000, out rx_results);
 
-                        if (errorCode is not Pothosware.SoapySDR.ErrorCode.None || results is null)
+                        if (errorCode is not Pothosware.SoapySDR.ErrorCode.None || rx_results is null)
                         {
                             Console.WriteLine($"RXSTREAM -->{errorCode}");
                             continue;
                         }
 
-                        var IncomingSamples = rx_floatBuffer_asspan.Slice(0, (int)results.NumSamples * 2).ToArray();
-                        Complex[] symbolsResults;
-                        symbolsResults = demod.deModulateConstellation(IncomingSamples.toComplex());
-
+                        var IncomingSamples = rx_floatBuffer_asspan.Slice(0, ((int)rx_results.NumSamples) * 2);
+                        var responseMessage = demod_data.DeModulateTextUtf8(IncomingSamples, prefix_start,prefix_end);
+                        if (responseMessage != string.Empty)
+                        {
+                           // Console.WriteLine($"Got Response--> {responseMessage}");
+                            File.AppendAllText("message.txt", responseMessage);
+                        }
+                        var symbolsResults = demod.deModulateConstellation(IncomingSamples);
+                        
                         byte[] frame = new byte[IncomingSamples.Length * 4];
-                        Buffer.BlockCopy(IncomingSamples, 0, frame, 0, frame.Length);
+                        Buffer.BlockCopy(IncomingSamples.ToArray(), 0, frame, 0, frame.Length);
 
-                        byte[] frame2 = new byte[symbolsResults.Length * 2 * 4];
-                        Buffer.BlockCopy(symbolsResults.toFloatInterleaved(), 0, frame2, 0, frame2.Length);
+                        byte[] frame2 = new byte[symbolsResults.Length * 4];
+                        Buffer.BlockCopy(symbolsResults, 0, frame2, 0, frame2.Length);
 
 
                         // Send single ZMQ frame without topic
@@ -145,7 +156,7 @@ namespace TestBench.SDR
                         double loopTimeSec = sw.Elapsed.TotalSeconds;
 
                         // 4. Compute remaining time until the "ideal" next send
-                        double sleepSec = (results.NumSamples / sampleRate) - loopTimeSec;
+                        double sleepSec = (rx_results.NumSamples / sampleRate) - loopTimeSec;
                         if (sleepSec > 0)
                         {
                             int sleepMs = (int)(sleepSec * 1000.0);

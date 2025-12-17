@@ -197,9 +197,6 @@
     <None Update="SDR\SoapySDR\root\SoapySDR\share\man\man1\SoapySDRUtil.1">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Simulated\testCostas.grc">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

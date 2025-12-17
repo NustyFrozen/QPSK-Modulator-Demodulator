@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,8 +13,9 @@ namespace QPSK.Models;
 /// 
 /// </summary>
 /// <param name="sampleRate">sample rate</param>
-/// <param name="loopBandwith">cutoff LPF of the error</param>
+/// <param name="loopBandwith">cutoff LPF of the error typ 40-150</param>
 /// <param name="FIRTaps">how strong you want the smoothing Small smoothing 11-31, strong 51-201  must be odd number</param>
+
 public class CostasLoopQpsk
 {
     readonly double sampleRate;
@@ -33,45 +35,97 @@ public class CostasLoopQpsk
         this.loopBandwidthHz = loopBandwidthHz;
         this.damping = damping;
 
-        // 1) normalize loop BW to rad/sample
+        // normalize loop BW to rad/sample
         double bw = 2.0 * Math.PI * loopBandwidthHz / sampleRate;
 
-        // 2) compute alpha, beta (Tom Rondeau / GNU Radio style)
+        // alpha, beta (Tom Rondeau / GNU Radio)
         double d = 1.0 + 2.0 * damping * bw + bw * bw;
         alpha = (4.0 * damping * bw) / d;
         beta = (4.0 * bw * bw) / d;
+
+        theta = 0.0;
+        freq = 0.0;
     }
 
-    // Hard limiter for QPSK
-    public static Complex GetSign(Complex sample) =>
-        new Complex(sample.Real > 0 ? 1.0 : -1.0,
-                    sample.Imaginary > 0 ? 1.0 : -1.0);
-
-    public Complex Process(Complex sample)
+    // Hard limiter for QPSK, float IQ
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void GetSign(float i, float q, out float di, out float dq)
     {
-        // NCO
-        var nco = Complex.FromPolarCoordinates(1.0, -theta);
-        var mixed = sample * nco;
+        di = (i >= 0f) ? 1f : -1f;
+        dq = (q >= 0f) ? 1f : -1f;
+    }
 
-        // QPSK decision
-        var est = GetSign(mixed);
+    /// <summary>
+    /// Process one interleaved IQ sample.
+    /// Input: (inI,inQ). Output: mixed (outI,outQ).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Process(float inI, float inQ, out float outI, out float outQ)
+    {
+        // Compute e^{-j theta} = cos(theta) - j sin(theta)
+        // mixed = (inI + j inQ) * (c - j s)
+        // => outI = inI*c + inQ*s
+        // => outQ = inQ*c - inI*s
+        double c = Math.Cos(theta);
+        double s = Math.Sin(theta);
 
-        // QPSK Costas phase detector
-        double phaseError = est.Real * mixed.Imaginary
-                          - est.Imaginary * mixed.Real;
+        double mi = (double)inI * c + (double)inQ * s;
+        double mq = (double)inQ * c - (double)inI * s;
 
-        // 2nd order loop:
-        // freq[n+1]  = freq[n]  + beta  * e[n]
-        // theta[n+1] = theta[n] + freq[n+1] + alpha * e[n]
+        outI = (float)mi;
+        outQ = (float)mq;
+
+        // QPSK decision on mixed
+        GetSign(outI, outQ, out float estI, out float estQ);
+
+        // Costas phase detector: e = estI*mq - estQ*mi
+        double phaseError = (double)estI * mq - (double)estQ * mi;
+
+        // 2nd-order loop update
         freq += beta * phaseError;
         theta += freq + alpha * phaseError;
 
-        // keep theta bounded (optional but good practice)
-        if (theta > Math.PI)
-            theta -= 2.0 * Math.PI;
-        else if (theta < -Math.PI)
-            theta += 2.0 * Math.PI;
-
-        return mixed;
+        // keep theta bounded
+        const double TwoPi = 2.0 * Math.PI;
+        if (theta > Math.PI) theta -= TwoPi;
+        else if (theta < -Math.PI) theta += TwoPi;
     }
+
+    /// <summary>
+    /// Span-based block processing. iqIn/iqOut are interleaved IQ: [I0,Q0,I1,Q1,...]
+    /// Returns number of complex samples processed.
+    /// </summary>
+    public int Process(ReadOnlySpan<float> iqIn, Span<float> iqOut)
+    {
+        if ((iqIn.Length & 1) != 0)
+            throw new ArgumentException("Input must be interleaved IQ with even length.", nameof(iqIn));
+        if (iqOut.Length < iqIn.Length)
+            throw new ArgumentException("Output span is too small.", nameof(iqOut));
+
+        int n = iqIn.Length >> 1;
+        for (int k = 0; k < n; k++)
+        {
+            int s = k << 1;
+            Process(iqIn[s], iqIn[s + 1], out float yI, out float yQ);
+            iqOut[s] = yI;
+            iqOut[s + 1] = yQ;
+        }
+        return n;
+    }
+
+    /// <summary>
+    /// Convenience allocating overload.
+    /// </summary>
+    public float[] Process(float[] iqIn)
+    {
+        if (iqIn == null) throw new ArgumentNullException(nameof(iqIn));
+        var y = new float[iqIn.Length];
+        Process(iqIn.AsSpan(), y.AsSpan());
+        return y;
+    }
+
+    /// <summary>
+    /// Optional: expose current NCO phase/frequency (radians, rad/sample).
+    /// </summary>
+    public (double theta, double freq) GetState() => (theta, freq);
 }

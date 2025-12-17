@@ -8,7 +8,67 @@ namespace QPSK.Models;
 
 public static class HelperFunctions
 {
-    
+    public static class BitPacker
+    {
+        // MSB-first within each byte.
+        public static string BytesToBitString(ReadOnlySpan<byte> data)
+        {
+            if (data.Length == 0) return string.Empty;
+
+            var chars = new char[data.Length * 8];
+            int k = 0;
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                byte b = data[i];
+                for (int bit = 7; bit >= 0; bit--)
+                    chars[k++] = ((b >> bit) & 1) == 0 ? '0' : '1';
+            }
+
+            return new string(chars);
+        }
+
+        // Convert bits->bytes starting at a bit offset (0..7). Ignores trailing incomplete byte.
+        public static byte[] BitsToBytes(string bits, int bitOffset)
+        {
+            if (bits is null) throw new ArgumentNullException(nameof(bits));
+            if ((uint)bitOffset > 7) throw new ArgumentOutOfRangeException(nameof(bitOffset));
+
+            int usableBits = bits.Length - bitOffset;
+            if (usableBits < 8) return Array.Empty<byte>();
+
+            int nBytes = usableBits / 8;
+            var bytes = new byte[nBytes];
+
+            int p = bitOffset;
+            for (int i = 0; i < nBytes; i++)
+            {
+                byte v = 0;
+                for (int j = 0; j < 8; j++)
+                {
+                    v <<= 1;
+                    char c = bits[p++];
+                    if (c == '1') v |= 1;
+                    else if (c != '0') throw new FormatException("Bit string must contain only '0'/'1'.");
+                }
+                bytes[i] = v;
+            }
+            return bytes;
+        }
+
+        public static int IndexOf(ReadOnlySpan<byte> haystack, ReadOnlySpan<byte> needle)
+        {
+            if (needle.Length == 0) return 0;
+            if (needle.Length > haystack.Length) return -1;
+
+            for (int i = 0; i <= haystack.Length - needle.Length; i++)
+            {
+                if (haystack.Slice(i, needle.Length).SequenceEqual(needle))
+                    return i;
+            }
+            return -1;
+        }
+    }
     /// <summary>
     /// Saves Complex[] IQ data as raw CS16 (interleaved int16: I,Q,I,Q,...)
     /// </summary>
@@ -139,162 +199,5 @@ public static class HelperFunctions
             y[i] = X[i];
 
         return y;
-    }
-}
-public static class WavExtensions
-{
-    /// <summary>
-    /// Save real-valued signal as 16-bit PCM WAV (mono).
-    /// samples: double[] assumed roughly in [-1, 1].
-    /// Automatically normalizes if needed to avoid clipping.
-    /// </summary>
-    public static void SaveAsWav(this double[] samples, string path, int sampleRate)
-    {
-        if (samples == null) throw new ArgumentNullException(nameof(samples));
-        if (samples.Length == 0) throw new ArgumentException("Signal is empty.", nameof(samples));
-        if (sampleRate <= 0) throw new ArgumentOutOfRangeException(nameof(sampleRate));
-
-        // Find max abs to normalize (avoid clipping)
-        double max = 0.0;
-        for (int i = 0; i < samples.Length; i++)
-        {
-            double v = Math.Abs(samples[i]);
-            if (v > max) max = v;
-        }
-        double norm = max > 1.0 ? max : 1.0; // if already within [-1,1], keep
-
-        short[] pcm = new short[samples.Length];
-        for (int i = 0; i < samples.Length; i++)
-        {
-            double scaled = samples[i] / norm;                 // now in roughly [-1,1]
-            int val = (int)Math.Round(scaled * short.MaxValue);
-            if (val > short.MaxValue) val = short.MaxValue;
-            if (val < short.MinValue) val = short.MinValue;
-            pcm[i] = (short)val;
-        }
-
-        WritePcm16WavMono(path, sampleRate, pcm);
-    }
-
-    /// <summary>
-    /// Save complex IQ as 16-bit "complex16" WAV.
-    /// Stored as stereo 16-bit PCM: Left = I, Right = Q.
-    /// samples: Complex[] assumed roughly in [-1, 1] for both I and Q.
-    /// Automatically normalizes based on max(|I|, |Q|).
-    /// </summary>
-    public static void SaveAsComplex16Wav(this Complex[] iqSamples, string path, int sampleRate)
-    {
-        if (iqSamples == null) throw new ArgumentNullException(nameof(iqSamples));
-        if (iqSamples.Length == 0) throw new ArgumentException("Signal is empty.", nameof(iqSamples));
-        if (sampleRate <= 0) throw new ArgumentOutOfRangeException(nameof(sampleRate));
-
-        // Find max magnitude across I and Q for normalization
-        double max = 0.0;
-        for (int i = 0; i < iqSamples.Length; i++)
-        {
-            double ar = Math.Abs(iqSamples[i].Real);
-            double ai = Math.Abs(iqSamples[i].Imaginary);
-            if (ar > max) max = ar;
-            if (ai > max) max = ai;
-        }
-        double norm = max > 1.0 ? max : 1.0;
-
-        // Interleave I,Q as stereo: [I0, Q0, I1, Q1, ...]
-        short[] pcm = new short[iqSamples.Length * 2];
-        int idx = 0;
-        for (int i = 0; i < iqSamples.Length; i++)
-        {
-            double iVal = iqSamples[i].Real / norm;
-            double qVal = iqSamples[i].Imaginary / norm;
-
-            int iInt = (int)Math.Round(iVal * short.MaxValue);
-            int qInt = (int)Math.Round(qVal * short.MaxValue);
-
-            if (iInt > short.MaxValue) iInt = short.MaxValue;
-            if (iInt < short.MinValue) iInt = short.MinValue;
-            if (qInt > short.MaxValue) qInt = short.MaxValue;
-            if (qInt < short.MinValue) qInt = short.MinValue;
-
-            pcm[idx++] = (short)iInt; // Left  = I
-            pcm[idx++] = (short)qInt; // Right = Q
-        }
-
-        WritePcm16WavStereo(path, sampleRate, pcm);
-    }
-
-    // --- Internal helpers: write WAV headers + data ---
-
-    private static void WritePcm16WavMono(string path, int sampleRate, short[] pcm)
-    {
-        using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-        using var bw = new BinaryWriter(fs);
-
-        int numChannels = 1;
-        int bitsPerSample = 16;
-        int byteRate = sampleRate * numChannels * bitsPerSample / 8;
-        short blockAlign = (short)(numChannels * bitsPerSample / 8);
-        int dataSize = pcm.Length * blockAlign;
-        int fmtChunkSize = 16;
-        int riffChunkSize = 4 + (8 + fmtChunkSize) + (8 + dataSize);
-
-        // RIFF header
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-        bw.Write(riffChunkSize);
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
-
-        // fmt chunk
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
-        bw.Write(fmtChunkSize);
-        bw.Write((short)1);             // PCM format
-        bw.Write((short)numChannels);
-        bw.Write(sampleRate);
-        bw.Write(byteRate);
-        bw.Write(blockAlign);
-        bw.Write((short)bitsPerSample);
-
-        // data chunk
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("data"));
-        bw.Write(dataSize);
-
-        // PCM data
-        for (int i = 0; i < pcm.Length; i++)
-            bw.Write(pcm[i]);
-    }
-
-    private static void WritePcm16WavStereo(string path, int sampleRate, short[] interleavedStereo)
-    {
-        using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-        using var bw = new BinaryWriter(fs);
-
-        int numChannels = 2;
-        int bitsPerSample = 16;
-        int byteRate = sampleRate * numChannels * bitsPerSample / 8;
-        short blockAlign = (short)(numChannels * bitsPerSample / 8);
-        int dataSize = interleavedStereo.Length * 2; // each short = 2 bytes
-        int fmtChunkSize = 16;
-        int riffChunkSize = 4 + (8 + fmtChunkSize) + (8 + dataSize);
-
-        // RIFF header
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-        bw.Write(riffChunkSize);
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
-
-        // fmt chunk
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
-        bw.Write(fmtChunkSize);
-        bw.Write((short)1);             // PCM format
-        bw.Write((short)numChannels);
-        bw.Write(sampleRate);
-        bw.Write(byteRate);
-        bw.Write(blockAlign);
-        bw.Write((short)bitsPerSample);
-
-        // data chunk
-        bw.Write(System.Text.Encoding.ASCII.GetBytes("data"));
-        bw.Write(dataSize);
-
-        // PCM data
-        for (int i = 0; i < interleavedStereo.Length; i++)
-            bw.Write(interleavedStereo[i]);
     }
 }
